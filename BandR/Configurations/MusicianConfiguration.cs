@@ -12,13 +12,12 @@ public class MusicianConfiguration : IEntityTypeConfiguration<Musician>
 
         builder.HasKey(m => m.Id);
         
-        builder.Property(m => m.FirstName)
+        builder.Property(m => m.Username)
             .IsRequired()
             .HasMaxLength(128);
-        
-        builder.Property(m => m.LastName)
-            .IsRequired()
-            .HasMaxLength(128);
+
+        builder.Property(m => m.Bio)
+            .HasMaxLength(1024);
 
         builder.HasOne(m => m.Location)
             .WithMany()

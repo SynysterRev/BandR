@@ -23,5 +23,7 @@ public class LocationConfiguration : IEntityTypeConfiguration<Location>
         builder.Property(l => l.PostalCode)
             .IsRequired()
             .HasMaxLength(10);
+        
+        builder.HasIndex(l => l.City).IsUnique();
     }
 }
