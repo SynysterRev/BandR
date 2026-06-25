@@ -139,6 +139,7 @@ public class MusicianService(ApplicationDbContext dbContext) : IMusicianService
             .Include(m => m.MusicianInstruments).ThenInclude(mi => mi.Instrument)
             .Include(m => m.Styles)
             .Include(m => m.Tags)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(m => m.Id == id, ct);
         if (foundMusician == null)
         {
@@ -150,7 +151,7 @@ public class MusicianService(ApplicationDbContext dbContext) : IMusicianService
 
     public async Task<List<MusicianListDto>> GetMusicians(CancellationToken ct)
     {
-        return await dbContext.Musicians.Select(m => new MusicianListDto(m.Username, m.Location.City))
+        return await dbContext.Musicians.Select(m => new MusicianListDto(m.Id, m.Username, m.Location.City))
             .ToListAsync(cancellationToken: ct);
     }
 }

@@ -1,4 +1,6 @@
+using BandR.Entities;
 using BandR.Extensions;
+using Microsoft.AspNetCore.Identity;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
