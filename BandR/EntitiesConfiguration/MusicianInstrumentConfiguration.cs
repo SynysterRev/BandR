@@ -2,7 +2,7 @@ using BandR.Entities.Joints;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace BandR.Configurations;
+namespace BandR.EntitiesConfiguration;
 
 public class MusicianInstrumentConfiguration : IEntityTypeConfiguration<MusicianInstrument>
 {

@@ -1,4 +1,5 @@
-﻿using BandR.Data;
+﻿using BandR.Configuration;
+using BandR.Data;
 using BandR.Entities;
 using BandR.Services;
 using BandR.Services.Interfaces;
@@ -12,7 +13,7 @@ namespace BandR.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration config)
     {
         services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
             {
@@ -27,6 +28,8 @@ public static class ServiceCollectionExtensions
             .AddUserStore<UserStore<ApplicationUser, ApplicationRole, ApplicationDbContext, Guid>>()
             .AddRoleStore<RoleStore<ApplicationRole, ApplicationDbContext, Guid>>();
         
+        // Lie la section "SmtpSettings" à la classe SmtpSettings
+        services.Configure<JwtConfiguration>(config.GetSection("Jwt"));
         services.AddScoped<IMusicianService, MusicianService>();
         // services.AddScoped<IAnnouncementService, AnnouncementService>();
         return services;

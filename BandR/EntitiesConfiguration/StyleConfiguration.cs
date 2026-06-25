@@ -3,7 +3,7 @@ using BandR.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace BandR.Configurations;
+namespace BandR.EntitiesConfiguration;
 
 public class StyleConfiguration : IEntityTypeConfiguration<Style>
 {
