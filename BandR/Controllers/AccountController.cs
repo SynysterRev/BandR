@@ -1,54 +1,78 @@
-// using BandR.DTOs.Account;
-// using BandR.Entities;
-// using Microsoft.AspNetCore.Authorization;
-// using Microsoft.AspNetCore.Identity;
-// using Microsoft.AspNetCore.Mvc;
-//
-// namespace BandR.Controllers;
-//
-// [ApiController]
-// [Route("api/[controller]")]
-// [AllowAnonymous]
-// public class AccountController(
-//     UserManager<ApplicationUser> userManager,
-//     SignInManager<ApplicationUser> signInManager,
-//     RoleManager<ApplicationRole> roleManager
-// ) : Controller
-// {
-//     [HttpPost("register")]
-//     public async Task<ActionResult<AuthenticationDto>> RegisterUser(RegisterDto registerDto)
-//     {
-//         ApplicationUser user = new ApplicationUser()
-//         {
-//             Email = registerDto.Email,
-//             UserName = registerDto.Email
-//         };
-//
-//         IdentityResult result = await userManager.CreateAsync(user, registerDto.Password);
-//
-//         if (!result.Succeeded)
-//         {
-//             var errors = result.Errors.Select(e => e.Description);
-//             return BadRequest(new { Errors = errors });
-//         }
-//
-//         // var addRoleResult = await userManager.AddToRoleAsync(user, registerDto.Role.ToString());
-//         // if (!addRoleResult.Succeeded)
-//         // {
-//         //     var errors = addRoleResult.Errors.Select(e => e.Description);
-//         //     return BadRequest(new { Errors = errors });
-//         // }
-//
-//         await signInManager.SignInAsync(user, isPersistent: false);
-//
-//         var response = await _jwtService.CreateJwtToken(user);
-//
-//         return Ok(response);
-//     }
-//     
-//     [HttpGet]
-//     public async Task<IActionResult> IsEmailAlreadyRegistered(string email)
-//     {
-//         return Ok(await userManager.FindByEmailAsync(email) != null);
-//     }
-// }
+using BandR.DTOs.Account;
+using BandR.Entities;
+using BandR.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+
+namespace BandR.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[AllowAnonymous]
+public class AccountController(
+    UserManager<ApplicationUser> userManager,
+    SignInManager<ApplicationUser> signInManager,
+    RoleManager<ApplicationRole> roleManager,
+    IJwtService jwtService
+) : Controller
+{
+    [HttpPost("register")]
+    public async Task<ActionResult<AuthTokenResult>> RegisterUser(RegisterDto registerDto, CancellationToken ct)
+    {
+        ApplicationUser user = new ApplicationUser()
+        {
+            Email = registerDto.Email,
+            UserName = registerDto.Email
+        };
+
+        IdentityResult result = await userManager.CreateAsync(user, registerDto.Password);
+
+        if (!result.Succeeded)
+        {
+            var errors = result.Errors.Select(e => e.Description);
+            return BadRequest(new { Errors = errors });
+        }
+
+        // var addRoleResult = await userManager.AddToRoleAsync(user, registerDto.Role.ToString());
+        // if (!addRoleResult.Succeeded)
+        // {
+        //     var errors = addRoleResult.Errors.Select(e => e.Description);
+        //     return BadRequest(new { Errors = errors });
+        // }
+
+        await signInManager.SignInAsync(user, isPersistent: false);
+
+        var response = await jwtService.CreateAuthTokenAsync(user, CancellationToken.None);
+
+        return Ok(response);
+    }
+
+    [HttpPost("login")]
+    public async Task<ActionResult<AuthTokenResult>> LoginUser(LoginDto loginDto, CancellationToken ct)
+    {
+        var result = await signInManager.PasswordSignInAsync(loginDto.Email, loginDto.Password, false, false);
+
+        if (!result.Succeeded)
+        {
+            return Unauthorized("Invalid email or password");
+                
+        }
+
+        ApplicationUser? user = await userManager.FindByEmailAsync(loginDto.Email);
+
+        if (user == null)
+        {
+            return Unauthorized("Invalid email or password");
+        }
+
+        var response = await jwtService.CreateAuthTokenAsync(user, ct);
+        return Ok(response);
+    }
+    
+    [HttpGet]
+    public async Task<IActionResult> IsEmailAlreadyRegistered(string email)
+    {
+        return Ok(await userManager.FindByEmailAsync(email) != null);
+    }
+}

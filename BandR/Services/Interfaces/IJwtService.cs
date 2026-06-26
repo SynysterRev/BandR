@@ -10,19 +10,19 @@ public interface IJwtService
     /// </summary>
     /// <param name="user"></param>
     /// <returns></returns>
-    public Task<AuthTokenResult> CreateAuthTokenAsync(ApplicationUser user);
+    public Task<AuthTokenResult> CreateAuthTokenAsync(ApplicationUser user, CancellationToken ct);
 
     /// <summary>
     /// Refresh a refresh token
     /// </summary>
     /// <param name="refreshToken"></param>
     /// <returns></returns>
-    Task<AuthTokenResult?> RefreshTokenAsync(string refreshToken);
+    Task<AuthTokenResult?> RefreshTokenAsync(string refreshToken,  CancellationToken ct);
 
     /// <summary>
     /// Revoke a refresh token
     /// </summary>
     /// <param name="refreshToken"></param>
     /// <returns></returns>
-    Task RevokeTokenAsync(string refreshToken);
+    Task RevokeTokenAsync(string refreshToken, CancellationToken ct);
 }

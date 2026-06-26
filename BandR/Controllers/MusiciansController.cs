@@ -1,5 +1,6 @@
 ﻿using BandR.DTOs.Musicians;
 using BandR.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BandR.Controllers;
@@ -10,6 +11,7 @@ public class MusiciansController(IMusicianService musicianService) : Controller
 {
 #if DEBUG
     [HttpGet]
+    [Authorize]
     public async Task<ActionResult<List<MusicianListDto>>> GetMusicians(CancellationToken ct)
     {
         return Ok(await musicianService.GetMusicians(ct));

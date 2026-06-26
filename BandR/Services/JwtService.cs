@@ -6,34 +6,23 @@ using BandR.Configuration;
 using BandR.DTOs.Account;
 using BandR.Entities;
 using BandR.Services.Interfaces;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-// using Razing.Commons.AspNetCore;
-// using Razing.Hyve.Authentication.Tokens;
-// using Razing.Hyve.PlayerData.Models;
+namespace BandR.Services;
 
-// namespace Razing.Hyve.Authentication.Internal;
-
-public class JwtService : IJwtService
+public class JwtService(
+    IOptions<JwtConfiguration> jwtConfiguration,
+    ITokenService tokenService
+) : IJwtService
 {
-    // private readonly IMongoTokenStore m_TokenStore;
-    private readonly JwtConfiguration JwtConfiguration;
+    private readonly JwtConfiguration JwtConfiguration = jwtConfiguration.Value;
 
-    public JwtService(IOptions<JwtConfiguration> jwtConfiguration)
+    public async Task<AuthTokenResult> CreateAuthTokenAsync(ApplicationUser user, CancellationToken ct)
     {
-        // m_TokenStore = tokenStore;
-        JwtConfiguration = jwtConfiguration.Value;
+        return await CreateFullAuthTokenAsync(user, ct);
     }
 
-    // public async Task<AuthTokenResult> CreateAuthTokenAsync(ApplicationUser user)
-    // {
-    //     var principal = MapToPrincipal(player);
-    //     return await CreateFullAuthTokenAsync(principal);
-    // }
-
-    public async Task<AuthTokenResult?> RefreshTokenAsync(string refreshToken)
+    public async Task<AuthTokenResult?> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken)
     {
         byte[] tokenBytes;
         try
@@ -47,30 +36,23 @@ public class JwtService : IJwtService
 
         byte[] incomingHash = HashToken(tokenBytes);
 
-        var tokenData = await m_TokenStore.GetTokenAsync(incomingHash);
+        var token = await tokenService.GetTokenAsync(incomingHash, cancellationToken);
 
-        if (tokenData is null)
+        if (token is null)
         {
             return null;
         }
 
-        var authTicket = TicketSerializer.Default.Deserialize(tokenData);
-
-        if (authTicket is null)
+        await tokenService.RemoveTokenAsync(incomingHash, cancellationToken);
+        if (token.ExpiresAt <= DateTimeOffset.UtcNow)
         {
             return null;
         }
 
-        await m_TokenStore.RemoveTokenAsync(incomingHash);
-        if (authTicket.Properties.ExpiresUtc is null || authTicket.Properties.ExpiresUtc <= DateTimeOffset.UtcNow)
-        {
-            return null;
-        }
-
-        return await CreateFullAuthTokenAsync(authTicket.Principal);
+        return await CreateFullAuthTokenAsync(token.AppUser, cancellationToken);
     }
 
-    public async Task RevokeTokenAsync(string refreshToken)
+    public async Task RevokeTokenAsync(string refreshToken, CancellationToken cancellationToken)
     {
         byte[] incomingBytes;
         try
@@ -81,49 +63,32 @@ public class JwtService : IJwtService
         {
             return;
         }
-        await m_TokenStore.RemoveTokenAsync(incomingBytes);
+
+        await tokenService.RemoveTokenAsync(incomingBytes, cancellationToken);
     }
 
-    private ClaimsPrincipal MapToPrincipal(PlayerDataModel player)
+    private async Task<AuthTokenResult> CreateFullAuthTokenAsync(ApplicationUser user, CancellationToken ct)
     {
-        var claims = new List<Claim> {
-            new Claim(JwtRegisteredClaimNames.Sub, player.Id),
-            new Claim(ClaimTypes.NameIdentifier, player.Id),
-            new Claim("username", player.Profile.DisplayName),
+        DateTime expiration = DateTime.UtcNow.AddMinutes(JwtConfiguration.ExpirationInMinutes);
+
+        SymmetricSecurityKey securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtConfiguration.SecretKey));
+        SigningCredentials signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+        var claims = new List<Claim>
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
-
-        if (!string.IsNullOrEmpty(player.Authentication.SteamId))
-            claims.Add(new Claim("steam_id", player.Authentication.SteamId));
-
-        return new ClaimsPrincipal(new ClaimsIdentity(claims, JwtBearerDefaults.AuthenticationScheme));
-    }
-
-    private async Task<AuthTokenResult> CreateFullAuthTokenAsync(ClaimsPrincipal claimsPrincipal)
-    {
-        DateTime expiration = DateTime.UtcNow.AddMinutes(JwtConfiguration.ExpiryMinutes);
-
-        SymmetricSecurityKey securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtConfiguration.Key));
-        SigningCredentials signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
         JwtSecurityToken tokenGenerator = new JwtSecurityToken(
             JwtConfiguration.Issuer,
             JwtConfiguration.Audience,
-            claimsPrincipal.Claims,
+            claims,
             expires: expiration,
             signingCredentials: signingCredentials
-            );
+        );
 
         JwtSecurityTokenHandler handler = new JwtSecurityTokenHandler();
         string token = handler.WriteToken(tokenGenerator);
-
-        var props = new AuthenticationProperties
-        {
-            IssuedUtc = DateTimeOffset.UtcNow.AddSeconds(-5),
-            ExpiresUtc = DateTimeOffset.UtcNow.AddDays(JwtConfiguration.RefreshExpiryDays),
-        };
-
-        var ticket = new AuthenticationTicket(claimsPrincipal, props, JwtBearerDefaults.AuthenticationScheme);
 
         Byte[] tokenBytes = new byte[64];
         using (var rng = RandomNumberGenerator.Create())
@@ -133,11 +98,12 @@ public class JwtService : IJwtService
 
         byte[] tokenHash = HashToken(tokenBytes);
 
-        await m_TokenStore.CreateTokenAsync(claimsPrincipal.GetUserId()!, ticket, tokenHash);
+        DateTime refreshTokenExpiration = DateTime.UtcNow.AddDays(JwtConfiguration.RefreshExpiryDays);
+        await tokenService.CreateTokenAsync(user.Id, tokenHash, refreshTokenExpiration, ct);
 
         string refreshToken = Convert.ToBase64String(tokenBytes);
 
-        return new AuthTokenResult(token, refreshToken, JwtConfiguration.ExpiryMinutes * 60);
+        return new AuthTokenResult(token, refreshToken, JwtConfiguration.ExpirationInMinutes * 60);
     }
 
     private byte[] HashToken(byte[] tokenData)
