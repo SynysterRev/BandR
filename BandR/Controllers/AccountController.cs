@@ -11,7 +11,6 @@ namespace BandR.Controllers;
 [Route("api/[controller]")]
 public class AccountController(
     UserManager<ApplicationUser> userManager,
-    SignInManager<ApplicationUser> signInManager,
     RoleManager<ApplicationRole> roleManager,
     IJwtService jwtService
 ) : Controller
@@ -41,8 +40,6 @@ public class AccountController(
         //     return BadRequest(new { Errors = errors });
         // }
 
-        await signInManager.SignInAsync(user, isPersistent: false);
-
         var response = await jwtService.CreateAuthTokenAsync(user, CancellationToken.None);
 
         return Ok(response);
@@ -52,17 +49,9 @@ public class AccountController(
     [HttpPost("login")]
     public async Task<ActionResult<AuthTokenResult>> LoginUser(LoginDto loginDto, CancellationToken ct)
     {
-        var result = await signInManager.PasswordSignInAsync(loginDto.Email, loginDto.Password, false, false);
-
-        if (!result.Succeeded)
-        {
-            return Unauthorized("Invalid email or password");
-                
-        }
-
         ApplicationUser? user = await userManager.FindByEmailAsync(loginDto.Email);
 
-        if (user == null)
+        if (user == null || !await userManager.CheckPasswordAsync(user, loginDto.Password))
         {
             return Unauthorized("Invalid email or password");
         }
