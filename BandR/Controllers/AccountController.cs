@@ -9,7 +9,6 @@ namespace BandR.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous]
 public class AccountController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
@@ -17,6 +16,7 @@ public class AccountController(
     IJwtService jwtService
 ) : Controller
 {
+    [AllowAnonymous]
     [HttpPost("register")]
     public async Task<ActionResult<AuthTokenResult>> RegisterUser(RegisterDto registerDto, CancellationToken ct)
     {
@@ -48,6 +48,7 @@ public class AccountController(
         return Ok(response);
     }
 
+    [AllowAnonymous]
     [HttpPost("login")]
     public async Task<ActionResult<AuthTokenResult>> LoginUser(LoginDto loginDto, CancellationToken ct)
     {
@@ -68,6 +69,26 @@ public class AccountController(
 
         var response = await jwtService.CreateAuthTokenAsync(user, ct);
         return Ok(response);
+    }
+
+    [Authorize]
+    [HttpPost("refresh")]
+    public async Task<ActionResult<AuthTokenResult>> RefreshTokenAsync(RefreshTokenDto refreshToken, CancellationToken ct)
+    {
+        var result = await jwtService.RefreshTokenAsync(refreshToken.RefreshToken, ct);
+        if (result is null)
+        {
+            return Unauthorized("Invalid refresh token");
+        }
+        return Ok(result);
+    }
+
+    [Authorize]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(RefreshTokenDto dto, CancellationToken ct)
+    {
+        await jwtService.RevokeTokenAsync(dto.RefreshToken, ct);
+        return NoContent();
     }
     
     [HttpGet]
