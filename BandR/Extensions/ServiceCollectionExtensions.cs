@@ -29,9 +29,7 @@ public static class ServiceCollectionExtensions
             })
             .AddRoles<ApplicationRole>()
             .AddEntityFrameworkStores<ApplicationDbContext>()
-            .AddDefaultTokenProviders()
-            .AddUserStore<UserStore<ApplicationUser, ApplicationRole, ApplicationDbContext, Guid>>()
-            .AddRoleStore<RoleStore<ApplicationRole, ApplicationDbContext, Guid>>();
+            .AddDefaultTokenProviders();
         
         var jwtConfig = config.GetSection("Jwt").Get<JwtConfiguration>()
                         ?? throw new InvalidOperationException("JWT configuration is missing");
