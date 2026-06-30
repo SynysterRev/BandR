@@ -1,3 +1,5 @@
+using BandR.Entities;
+
 namespace BandR.DTOs.Announcements;
 
 public record AnnouncementDto(
@@ -7,6 +9,7 @@ public record AnnouncementDto(
     string City,
     Guid MusicianId,
     string MusicianUsername,
+    AnnouncementType Type,
     List<string> Instruments,
     List<string> Tags,
     List<string> Styles,

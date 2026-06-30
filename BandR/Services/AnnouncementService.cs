@@ -1,3 +1,4 @@
+using BandR.Common;
 using BandR.Data;
 using BandR.DTOs.Announcements;
 using BandR.Entities;
@@ -27,13 +28,37 @@ public class AnnouncementService(ApplicationDbContext dbContext) : IAnnouncement
         return announcement.ToDto();
     }
 
-    public Task<List<AnnouncementListDto>> GetAnnouncements(CancellationToken cancellationToken)
+    public async Task<PagedResponse<AnnouncementListDto>> GetAnnouncements(AnnouncementQueryFilter filter,
+        CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var pageNumber = Math.Max(1, filter.PageNumber);
+        var pageSize = Math.Clamp(filter.PageSize, 1, 50);
+        
+        var query = dbContext.Announcements.AsNoTracking().AsQueryable();
+        
+        var totalRecords = await query.CountAsync(cancellationToken);
+        
+        query.ApplySort(string.IsNullOrWhiteSpace(filter.SortBy) ? "CreatedAt" : filter.SortBy);
+        
+        var announcements = await query.ApplyPagination(pageNumber, pageSize)
+            .Select(a => a.ToListDto())
+            .ToListAsync(cancellationToken);
+
+        return new PagedResponse<AnnouncementListDto>
+        {
+            Data = announcements,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalRecords = totalRecords,
+            TotalPages = (int)Math.Ceiling(totalRecords / (double)pageSize)
+        };
     }
 
-    public Task<List<AnnouncementListDto>> GetAnnouncementsForMusician(Guid musicianId,
-        CancellationToken cancellationToken)
+    public Task<PagedResponse<AnnouncementListDto>> GetAnnouncementsForMusician(
+        Guid musicianId,
+        AnnouncementQueryFilter filter,
+        CancellationToken cancellationToken
+    )
     {
         throw new NotImplementedException();
     }
