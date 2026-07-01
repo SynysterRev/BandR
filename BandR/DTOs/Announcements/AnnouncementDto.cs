@@ -13,5 +13,6 @@ public record AnnouncementDto(
     List<string> Instruments,
     List<string> Tags,
     List<string> Styles,
+    bool IsActive,
     DateTime CreatedAt
 );

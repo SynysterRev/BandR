@@ -10,10 +10,9 @@ namespace BandR.Tests.IntegrationTests.Services;
 
 public sealed class MusicianServiceTests : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
-        .WithImage("postgres:16-alpine")
+    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16-alpine")
         .Build();
-    
+
     private ApplicationDbContext _dbContext = null!;
     private MusicianService _musicianService = null!;
     private readonly Guid _appUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
@@ -133,8 +132,8 @@ public sealed class MusicianServiceTests : IAsyncLifetime
     [Fact]
     public async Task GetMusicianById_ShouldThrow_WhenNotFound()
     {
-        await Assert.ThrowsAsync<MusicianException.MusicianNotFoundException>(
-            () => _musicianService.GetMusicianById(Guid.NewGuid(), CancellationToken.None)
+        await Assert.ThrowsAsync<MusicianException.MusicianNotFoundException>(() =>
+            _musicianService.GetMusicianById(Guid.NewGuid(), CancellationToken.None)
         );
     }
 
@@ -193,8 +192,8 @@ public sealed class MusicianServiceTests : IAsyncLifetime
             TagIds: null
         );
 
-        await Assert.ThrowsAsync<MusicianException.MusicianNotFoundException>(
-            () => _musicianService.UpdateMusician(Guid.NewGuid(), updateDto, _appUserId, CancellationToken.None)
+        await Assert.ThrowsAsync<MusicianException.MusicianNotFoundException>(() =>
+            _musicianService.UpdateMusician(Guid.NewGuid(), updateDto, _appUserId, CancellationToken.None)
         );
     }
 
@@ -213,8 +212,8 @@ public sealed class MusicianServiceTests : IAsyncLifetime
             TagIds: null
         );
 
-        await Assert.ThrowsAsync<MusicianException.MusicianForbiddenException>(
-            () => _musicianService.UpdateMusician(created.Id, updateDto, otherUserId, CancellationToken.None)
+        await Assert.ThrowsAsync<MusicianException.MusicianForbiddenException>(() =>
+            _musicianService.UpdateMusician(created.Id, updateDto, otherUserId, CancellationToken.None)
         );
     }
 
@@ -246,16 +245,16 @@ public sealed class MusicianServiceTests : IAsyncLifetime
 
         await _musicianService.DeleteMusician(created.Id, CancellationToken.None);
 
-        await Assert.ThrowsAsync<MusicianException.MusicianNotFoundException>(
-            () => _musicianService.GetMusicianById(created.Id, CancellationToken.None)
+        await Assert.ThrowsAsync<MusicianException.MusicianNotFoundException>(() =>
+            _musicianService.GetMusicianById(created.Id, CancellationToken.None)
         );
     }
 
     [Fact]
     public async Task DeleteMusician_ShouldThrow_WhenNotFound()
     {
-        await Assert.ThrowsAsync<MusicianException.MusicianNotFoundException>(
-            () => _musicianService.DeleteMusician(Guid.NewGuid(), CancellationToken.None)
+        await Assert.ThrowsAsync<MusicianException.MusicianNotFoundException>(() =>
+            _musicianService.DeleteMusician(Guid.NewGuid(), CancellationToken.None)
         );
     }
 }

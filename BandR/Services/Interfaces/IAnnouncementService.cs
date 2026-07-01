@@ -14,8 +14,14 @@ public interface IAnnouncementService
     public Task<PagedResponse<AnnouncementListDto>> GetAnnouncementsForMusician(Guid musicianId,
         AnnouncementQueryFilter filter, CancellationToken cancellationToken);
 
-    public Task<AnnouncementDto> CreateAnnouncement(CreateAnnouncementDto announcement,
+    public Task<AnnouncementDto> CreateAnnouncement(CreateAnnouncementDto announcement, Guid musicianId,
         CancellationToken cancellationToken);
 
-    public Task DeleteAnnouncement(Announcement announcement, CancellationToken cancellationToken);
+    public Task<AnnouncementDto> UpdateAnnouncement(
+        Guid announcementId,
+        Guid musicianId,
+        UpdateAnnouncementDto dto,
+        CancellationToken cancellationToken);
+
+    public Task DeleteAnnouncement(Guid id, Guid musicianId, CancellationToken cancellationToken);
 }

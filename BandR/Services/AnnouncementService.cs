@@ -2,6 +2,7 @@ using BandR.Common;
 using BandR.Data;
 using BandR.DTOs.Announcements;
 using BandR.Entities;
+using BandR.Entities.Joints;
 using BandR.Exceptions;
 using BandR.Extensions;
 using BandR.Services.Interfaces;
@@ -33,15 +34,27 @@ public class AnnouncementService(ApplicationDbContext dbContext) : IAnnouncement
     {
         var pageNumber = Math.Max(1, filter.PageNumber);
         var pageSize = Math.Clamp(filter.PageSize, 1, 50);
-        
-        var query = dbContext.Announcements.AsNoTracking().AsQueryable();
-        
+
+        var query = dbContext.Announcements.AsNoTracking()
+            .AsQueryable()
+            .Where(a => a.IsActive);
+
         var totalRecords = await query.CountAsync(cancellationToken);
-        
-        query.ApplySort(string.IsNullOrWhiteSpace(filter.SortBy) ? "CreatedAt" : filter.SortBy);
-        
+
+        query = query.ApplySort(string.IsNullOrWhiteSpace(filter.SortBy) ? "CreatedAt" : filter.SortBy);
+
         var announcements = await query.ApplyPagination(pageNumber, pageSize)
-            .Select(a => a.ToListDto())
+            .Select(a => new AnnouncementListDto(
+                a.Id,
+                a.Title,
+                a.Location.City,
+                a.Type,
+                a.Musician.Id,
+                a.Musician.Username,
+                a.AnnouncementInstruments.Select(ai => ai.Instrument.Name).ToList(),
+                a.Styles.Select(s => s.Name).ToList(),
+                a.CreatedAt
+            ))
             .ToListAsync(cancellationToken);
 
         return new PagedResponse<AnnouncementListDto>
@@ -54,23 +67,202 @@ public class AnnouncementService(ApplicationDbContext dbContext) : IAnnouncement
         };
     }
 
-    public Task<PagedResponse<AnnouncementListDto>> GetAnnouncementsForMusician(
+    public async Task<PagedResponse<AnnouncementListDto>> GetAnnouncementsForMusician(
         Guid musicianId,
         AnnouncementQueryFilter filter,
         CancellationToken cancellationToken
     )
     {
-        throw new NotImplementedException();
+        var pageNumber = Math.Max(1, filter.PageNumber);
+        var pageSize = Math.Clamp(filter.PageSize, 1, 50);
+
+        var query = dbContext.Announcements.AsNoTracking()
+            .AsQueryable()
+            .Where(a => a.MusicianId == musicianId);
+
+        var totalRecords = await query.CountAsync(cancellationToken);
+
+        query = query.ApplySort(string.IsNullOrWhiteSpace(filter.SortBy) ? "CreatedAt" : filter.SortBy);
+
+        var announcements = await query.ApplyPagination(pageNumber, pageSize)
+            .Select(a => new AnnouncementListDto(
+                a.Id,
+                a.Title,
+                a.Location.City,
+                a.Type,
+                a.Musician.Id,
+                a.Musician.Username,
+                a.AnnouncementInstruments.Select(ai => ai.Instrument.Name).ToList(),
+                a.Styles.Select(s => s.Name).ToList(),
+                a.CreatedAt
+            ))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResponse<AnnouncementListDto>
+        {
+            Data = announcements,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalRecords = totalRecords,
+            TotalPages = (int)Math.Ceiling(totalRecords / (double)pageSize)
+        };
     }
 
-    public Task<AnnouncementDto> CreateAnnouncement(CreateAnnouncementDto announcement,
-        CancellationToken cancellationToken)
+    public async Task<AnnouncementDto> CreateAnnouncement(
+        CreateAnnouncementDto announcementDto,
+        Guid musicianId,
+        CancellationToken cancellationToken
+    )
     {
-        throw new NotImplementedException();
+        var location = await dbContext.Locations
+            .FirstOrDefaultAsync(l => l.City.ToLower() == announcementDto.City.ToLower(), cancellationToken);
+
+        if (location is null)
+        {
+            location = new Location
+            {
+                City = announcementDto.City,
+                CreatedAt = DateTime.UtcNow
+            };
+            dbContext.Locations.Add(location);
+        }
+
+        var announcement = announcementDto.ToEntity(musicianId, location);
+        var instruments = await dbContext.Instruments
+            .Where(i => announcementDto.InstrumentIds.Contains(i.Id))
+            .ToListAsync(cancellationToken);
+        announcement.AnnouncementInstruments = instruments.Select(i => new AnnouncementInstrument
+        {
+            Instrument = i
+        }).ToList();
+
+        var tags = await dbContext.Tags
+            .Where(t => announcementDto.TagIds.Contains(t.Id))
+            .ToListAsync(cancellationToken);
+
+        announcement.Tags = tags;
+
+        var styles = await dbContext.Styles
+            .Where(s => announcementDto.StyleIds.Contains(s.Id))
+            .ToListAsync(cancellationToken);
+
+        announcement.Styles = styles;
+        
+        await dbContext.Announcements.AddAsync(announcement, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return announcement.ToDto();
+    }
+    
+    public async Task<AnnouncementDto> UpdateAnnouncement(
+    Guid announcementId,
+    Guid musicianId,
+    UpdateAnnouncementDto dto,
+    CancellationToken cancellationToken)
+{
+    var announcement = await dbContext.Announcements
+        .Include(a => a.Location)
+        .Include(a => a.Tags)
+        .Include(a => a.Styles)
+        .Include(a => a.AnnouncementInstruments)
+        .FirstOrDefaultAsync(a => a.Id == announcementId, cancellationToken);
+
+    if (announcement is null)
+    {
+        throw new AnnouncementException.AnnouncementNotFoundException(announcementId);
     }
 
-    public Task DeleteAnnouncement(Announcement announcement, CancellationToken cancellationToken)
+    if (announcement.MusicianId != musicianId)
     {
-        throw new NotImplementedException();
+        throw new AnnouncementException.AnnouncementForbiddenException(announcementId);
+    }
+
+    if (dto.Title is not null)
+        announcement.Title = dto.Title;
+
+    if (dto.Description is not null)
+        announcement.Description = dto.Description;
+
+    if (dto.Type.HasValue)
+        announcement.Type = dto.Type.Value;
+
+    if (dto.IsActive.HasValue)
+        announcement.IsActive = dto.IsActive.Value;
+
+    if (!string.IsNullOrWhiteSpace(dto.City))
+    {
+        var location = await dbContext.Locations
+            .FirstOrDefaultAsync(
+                l => l.City.ToLower() == dto.City.ToLower(),
+                cancellationToken);
+
+        if (location is null)
+        {
+            location = new Location
+            {
+                City = dto.City,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            dbContext.Locations.Add(location);
+        }
+
+        announcement.Location = location;
+    }
+
+    if (dto.InstrumentIds is not null)
+    {
+        var instruments = await dbContext.Instruments
+            .Where(i => dto.InstrumentIds.Contains(i.Id))
+            .ToListAsync(cancellationToken);
+
+        announcement.AnnouncementInstruments.Clear();
+
+        foreach (var instrument in instruments)
+        {
+            announcement.AnnouncementInstruments.Add(new AnnouncementInstrument
+            {
+                Instrument = instrument
+            });
+        }
+    }
+
+    if (dto.TagIds is not null)
+    {
+        var tags = await dbContext.Tags
+            .Where(t => dto.TagIds.Contains(t.Id))
+            .ToListAsync(cancellationToken);
+
+        announcement.Tags = tags;
+    }
+
+    if (dto.StyleIds is not null)
+    {
+        var styles = await dbContext.Styles
+            .Where(s => dto.StyleIds.Contains(s.Id))
+            .ToListAsync(cancellationToken);
+
+        announcement.Styles = styles;
+    }
+
+    await dbContext.SaveChangesAsync(cancellationToken);
+
+    return announcement.ToDto();
+}
+
+    public async Task DeleteAnnouncement(Guid id, Guid musicianId, CancellationToken cancellationToken)
+    {
+        var foundAnnouncement = await dbContext.Announcements.FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
+        if (foundAnnouncement == null)
+        {
+            throw new AnnouncementException.AnnouncementNotFoundException(id);
+        }
+
+        if (foundAnnouncement.MusicianId != musicianId)
+        {
+            throw new AnnouncementException.AnnouncementForbiddenException(id);
+        }
+
+        dbContext.Announcements.Remove(foundAnnouncement);
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

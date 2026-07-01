@@ -31,6 +31,7 @@ public static class AnnouncementExtensions
             announcement.AnnouncementInstruments.Select(ai => ai.Instrument.Name).ToList(),
             announcement.Tags.Select(t => t.Name).ToList(),
             announcement.Styles.Select(s => s.Name).ToList(),
+            announcement.IsActive,
             announcement.CreatedAt
         );
     }

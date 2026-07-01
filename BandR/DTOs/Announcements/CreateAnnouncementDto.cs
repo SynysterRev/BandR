@@ -9,6 +9,5 @@ public record CreateAnnouncementDto(
     AnnouncementType Type,
     List<Guid> InstrumentIds,
     List<Guid> TagIds,
-    List<Guid> StyleIds,
-    DateTime CreatedAt
+    List<Guid> StyleIds
 );
