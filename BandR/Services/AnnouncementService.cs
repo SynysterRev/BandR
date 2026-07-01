@@ -12,7 +12,7 @@ namespace BandR.Services;
 
 public class AnnouncementService(ApplicationDbContext dbContext) : IAnnouncementService
 {
-    public async Task<AnnouncementDto> GetAnnouncementById(Guid id, CancellationToken cancellationToken)
+    public async Task<AnnouncementDto> GetAnnouncementByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         var announcement = await dbContext.Announcements
             .Include(a => a.Location)
@@ -29,7 +29,7 @@ public class AnnouncementService(ApplicationDbContext dbContext) : IAnnouncement
         return announcement.ToDto();
     }
 
-    public async Task<PagedResponse<AnnouncementListDto>> GetAnnouncements(AnnouncementQueryFilter filter,
+    public async Task<PagedResponse<AnnouncementListDto>> GetAnnouncementsAsync(AnnouncementQueryFilter filter,
         CancellationToken cancellationToken)
     {
         var pageNumber = Math.Max(1, filter.PageNumber);
@@ -67,7 +67,7 @@ public class AnnouncementService(ApplicationDbContext dbContext) : IAnnouncement
         };
     }
 
-    public async Task<PagedResponse<AnnouncementListDto>> GetAnnouncementsForMusician(
+    public async Task<PagedResponse<AnnouncementListDto>> GetAnnouncementsForMusicianAsync(
         Guid musicianId,
         AnnouncementQueryFilter filter,
         CancellationToken cancellationToken
@@ -108,7 +108,7 @@ public class AnnouncementService(ApplicationDbContext dbContext) : IAnnouncement
         };
     }
 
-    public async Task<AnnouncementDto> CreateAnnouncement(
+    public async Task<AnnouncementDto> CreateAnnouncementAsync(
         CreateAnnouncementDto announcementDto,
         Guid musicianId,
         CancellationToken cancellationToken
@@ -128,32 +128,41 @@ public class AnnouncementService(ApplicationDbContext dbContext) : IAnnouncement
         }
 
         var announcement = announcementDto.ToEntity(musicianId, location);
-        var instruments = await dbContext.Instruments
-            .Where(i => announcementDto.InstrumentIds.Contains(i.Id))
-            .ToListAsync(cancellationToken);
-        announcement.AnnouncementInstruments = instruments.Select(i => new AnnouncementInstrument
+        if (announcementDto.InstrumentIds is not null && announcementDto.InstrumentIds.Count > 0)
         {
-            Instrument = i
-        }).ToList();
+            var instruments = await dbContext.Instruments
+                .Where(i => announcementDto.InstrumentIds.Contains(i.Id))
+                .ToListAsync(cancellationToken);
+            announcement.AnnouncementInstruments = instruments.Select(i => new AnnouncementInstrument
+            {
+                Instrument = i
+            }).ToList();
+        }
 
-        var tags = await dbContext.Tags
-            .Where(t => announcementDto.TagIds.Contains(t.Id))
-            .ToListAsync(cancellationToken);
+        if (announcementDto.TagIds is not null && announcementDto.TagIds.Count > 0)
+        {
+            var tags = await dbContext.Tags
+                .Where(t => announcementDto.TagIds.Contains(t.Id))
+                .ToListAsync(cancellationToken);
 
-        announcement.Tags = tags;
+            announcement.Tags = tags;
+        }
 
-        var styles = await dbContext.Styles
-            .Where(s => announcementDto.StyleIds.Contains(s.Id))
-            .ToListAsync(cancellationToken);
+        if (announcementDto.StyleIds is not null && announcementDto.StyleIds.Count > 0)
+        {
+            var styles = await dbContext.Styles
+                .Where(s => announcementDto.StyleIds.Contains(s.Id))
+                .ToListAsync(cancellationToken);
 
-        announcement.Styles = styles;
-        
+            announcement.Styles = styles;
+        }
+
         await dbContext.Announcements.AddAsync(announcement, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return announcement.ToDto();
     }
     
-    public async Task<AnnouncementDto> UpdateAnnouncement(
+    public async Task<AnnouncementDto> UpdateAnnouncementAsync(
     Guid announcementId,
     Guid musicianId,
     UpdateAnnouncementDto dto,
@@ -249,7 +258,7 @@ public class AnnouncementService(ApplicationDbContext dbContext) : IAnnouncement
     return announcement.ToDto();
 }
 
-    public async Task DeleteAnnouncement(Guid id, Guid musicianId, CancellationToken cancellationToken)
+    public async Task DeleteAnnouncementAsync(Guid id, Guid musicianId, CancellationToken cancellationToken)
     {
         var foundAnnouncement = await dbContext.Announcements.FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
         if (foundAnnouncement == null)

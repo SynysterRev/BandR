@@ -90,7 +90,7 @@ public sealed class AnnouncementServiceTests : IAsyncLifetime
             TagIds: []
         );
 
-        return await _announcementService.CreateAnnouncement(dto, musicianId ?? _musicianId, CancellationToken.None);
+        return await _announcementService.CreateAnnouncementAsync(dto, musicianId ?? _musicianId, CancellationToken.None);
     }
 
     // ---- CreateAnnouncement ----
@@ -124,7 +124,7 @@ public sealed class AnnouncementServiceTests : IAsyncLifetime
     {
         var created = await CreateDefaultAnnouncement();
 
-        var result = await _announcementService.GetAnnouncementById(created.Id, CancellationToken.None);
+        var result = await _announcementService.GetAnnouncementByIdAsync(created.Id, CancellationToken.None);
 
         Assert.NotNull(result);
         Assert.Equal(created.Id, result.Id);
@@ -135,7 +135,7 @@ public sealed class AnnouncementServiceTests : IAsyncLifetime
     public async Task GetAnnouncementById_ShouldThrow_WhenNotFound()
     {
         await Assert.ThrowsAsync<AnnouncementException.AnnouncementNotFoundException>(() =>
-            _announcementService.GetAnnouncementById(Guid.NewGuid(), CancellationToken.None)
+            _announcementService.GetAnnouncementByIdAsync(Guid.NewGuid(), CancellationToken.None)
         );
     }
 
@@ -154,7 +154,7 @@ public sealed class AnnouncementServiceTests : IAsyncLifetime
         await _dbContext.SaveChangesAsync();
 
         var filter = new AnnouncementQueryFilter { PageNumber = 1, PageSize = 10 };
-        var result = await _announcementService.GetAnnouncements(filter, CancellationToken.None);
+        var result = await _announcementService.GetAnnouncementsAsync(filter, CancellationToken.None);
 
         Assert.Contains(result.Data, a => a.Title == "Active 1");
         Assert.DoesNotContain(result.Data, a => a.Title == "Inactive 1");
@@ -194,7 +194,7 @@ public sealed class AnnouncementServiceTests : IAsyncLifetime
         await CreateDefaultAnnouncement(title: "Annonce de l'autre", musicianId: otherMusicianId);
 
         var filter = new AnnouncementQueryFilter { PageNumber = 1, PageSize = 10 };
-        var result = await _announcementService.GetAnnouncementsForMusician(_musicianId, filter, CancellationToken.None);
+        var result = await _announcementService.GetAnnouncementsForMusicianAsync(_musicianId, filter, CancellationToken.None);
 
         Assert.Single(result.Data);
         Assert.Equal("Ma super annonce", result.Data.First().Title);
@@ -218,7 +218,7 @@ public sealed class AnnouncementServiceTests : IAsyncLifetime
             TagIds: null
         );
 
-        var result = await _announcementService.UpdateAnnouncement(created.Id, _musicianId, updateDto, CancellationToken.None);
+        var result = await _announcementService.UpdateAnnouncementAsync(created.Id, _musicianId, updateDto, CancellationToken.None);
 
         Assert.Equal("Titre Modifié", result.Title);
         Assert.Equal("Nouvelle description", result.Description);
@@ -237,7 +237,7 @@ public sealed class AnnouncementServiceTests : IAsyncLifetime
         );
 
         await Assert.ThrowsAsync<AnnouncementException.AnnouncementForbiddenException>(() =>
-            _announcementService.UpdateAnnouncement(created.Id, fakeMusicianId, updateDto, CancellationToken.None)
+            _announcementService.UpdateAnnouncementAsync(created.Id, fakeMusicianId, updateDto, CancellationToken.None)
         );
     }
 
@@ -249,7 +249,7 @@ public sealed class AnnouncementServiceTests : IAsyncLifetime
         );
 
         await Assert.ThrowsAsync<AnnouncementException.AnnouncementNotFoundException>(() =>
-            _announcementService.UpdateAnnouncement(Guid.NewGuid(), _musicianId, updateDto, CancellationToken.None)
+            _announcementService.UpdateAnnouncementAsync(Guid.NewGuid(), _musicianId, updateDto, CancellationToken.None)
         );
     }
 
@@ -260,7 +260,7 @@ public sealed class AnnouncementServiceTests : IAsyncLifetime
     {
         var created = await CreateDefaultAnnouncement();
 
-        await _announcementService.DeleteAnnouncement(created.Id, _musicianId, CancellationToken.None);
+        await _announcementService.DeleteAnnouncementAsync(created.Id, _musicianId, CancellationToken.None);
 
         var exists = await _dbContext.Announcements.AnyAsync(a => a.Id == created.Id);
         Assert.False(exists);
@@ -273,7 +273,7 @@ public sealed class AnnouncementServiceTests : IAsyncLifetime
         var fakeMusicianId = Guid.NewGuid();
 
         await Assert.ThrowsAsync<AnnouncementException.AnnouncementForbiddenException>(() =>
-            _announcementService.DeleteAnnouncement(created.Id, fakeMusicianId, CancellationToken.None)
+            _announcementService.DeleteAnnouncementAsync(created.Id, fakeMusicianId, CancellationToken.None)
         );
     }
 
@@ -281,7 +281,7 @@ public sealed class AnnouncementServiceTests : IAsyncLifetime
     public async Task DeleteAnnouncement_ShouldThrow_WhenNotFound()
     {
         await Assert.ThrowsAsync<AnnouncementException.AnnouncementNotFoundException>(() =>
-            _announcementService.DeleteAnnouncement(Guid.NewGuid(), _musicianId, CancellationToken.None)
+            _announcementService.DeleteAnnouncementAsync(Guid.NewGuid(), _musicianId, CancellationToken.None)
         );
     }
 }

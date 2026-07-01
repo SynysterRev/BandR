@@ -6,22 +6,22 @@ namespace BandR.Services.Interfaces;
 
 public interface IAnnouncementService
 {
-    public Task<AnnouncementDto> GetAnnouncementById(Guid id, CancellationToken cancellationToken);
+    public Task<AnnouncementDto> GetAnnouncementByIdAsync(Guid id, CancellationToken cancellationToken);
 
-    public Task<PagedResponse<AnnouncementListDto>> GetAnnouncements(AnnouncementQueryFilter filter,
+    public Task<PagedResponse<AnnouncementListDto>> GetAnnouncementsAsync(AnnouncementQueryFilter filter,
         CancellationToken cancellationToken);
 
-    public Task<PagedResponse<AnnouncementListDto>> GetAnnouncementsForMusician(Guid musicianId,
+    public Task<PagedResponse<AnnouncementListDto>> GetAnnouncementsForMusicianAsync(Guid musicianId,
         AnnouncementQueryFilter filter, CancellationToken cancellationToken);
 
-    public Task<AnnouncementDto> CreateAnnouncement(CreateAnnouncementDto announcement, Guid musicianId,
+    public Task<AnnouncementDto> CreateAnnouncementAsync(CreateAnnouncementDto announcement, Guid musicianId,
         CancellationToken cancellationToken);
 
-    public Task<AnnouncementDto> UpdateAnnouncement(
+    public Task<AnnouncementDto> UpdateAnnouncementAsync(
         Guid announcementId,
         Guid musicianId,
         UpdateAnnouncementDto dto,
         CancellationToken cancellationToken);
 
-    public Task DeleteAnnouncement(Guid id, Guid musicianId, CancellationToken cancellationToken);
+    public Task DeleteAnnouncementAsync(Guid id, Guid musicianId, CancellationToken cancellationToken);
 }

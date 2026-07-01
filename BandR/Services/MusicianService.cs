@@ -11,7 +11,7 @@ namespace BandR.Services;
 
 public class MusicianService(ApplicationDbContext dbContext) : IMusicianService
 {
-    public async Task<MusicianDto> CreateMusician(CreateMusicianDto musicianDto, Guid appUserId, CancellationToken ct)
+    public async Task<MusicianDto> CreateMusicianAsync(CreateMusicianDto musicianDto, Guid appUserId, CancellationToken ct)
     {
         var location = await dbContext.Locations
             .FirstOrDefaultAsync(l => l.City.ToLower() == musicianDto.City.ToLower(), ct);
@@ -27,32 +27,42 @@ public class MusicianService(ApplicationDbContext dbContext) : IMusicianService
         }
 
         var musician = musicianDto.ToEntity(appUserId, location);
-        var instruments = await dbContext.Instruments
-            .Where(i => musicianDto.InstrumentIds.Contains(i.Id))
-            .ToListAsync(ct);
-
-        musician.MusicianInstruments = instruments.Select(i => new MusicianInstrument
+        if (musicianDto.InstrumentIds is not null && musicianDto.InstrumentIds.Count > 0)
         {
-            Instrument = i
-        }).ToList();
+            var instruments = await dbContext.Instruments
+                .Where(i => musicianDto.InstrumentIds.Contains(i.Id))
+                .ToListAsync(ct);
 
-        var tags = await dbContext.Tags
-            .Where(t => musicianDto.TagIds.Contains(t.Id))
-            .ToListAsync(ct);
+            musician.MusicianInstruments = instruments.Select(i => new MusicianInstrument
+            {
+                Instrument = i
+            }).ToList();
+        }
 
-        musician.Tags = tags;
+        if (musicianDto.TagIds is not null && musicianDto.TagIds.Count > 0)
+        {
+            var tags = await dbContext.Tags
+                .Where(t => musicianDto.TagIds.Contains(t.Id))
+                .ToListAsync(ct);
 
-        var styles = await dbContext.Styles
-            .Where(s => musicianDto.StyleIds.Contains(s.Id))
-            .ToListAsync(ct);
+            musician.Tags = tags;
+        }
 
-        musician.Styles = styles;
+        if (musicianDto.StyleIds is not null && musicianDto.StyleIds.Count > 0)
+        {
+            var styles = await dbContext.Styles
+                .Where(s => musicianDto.StyleIds.Contains(s.Id))
+                .ToListAsync(ct);
+
+            musician.Styles = styles;
+        }
+
         dbContext.Musicians.Add(musician);
         await dbContext.SaveChangesAsync(ct);
         return musician.ToDto();
     }
 
-    public async Task<MusicianDto> UpdateMusician(Guid id, UpdateMusicianDto dto, Guid appUserId, CancellationToken ct)
+    public async Task<MusicianDto> UpdateMusicianAsync(Guid id, UpdateMusicianDto dto, Guid appUserId, CancellationToken ct)
     {
         var musician = await dbContext.Musicians
                            .Include(m => m.Location)
@@ -120,7 +130,7 @@ public class MusicianService(ApplicationDbContext dbContext) : IMusicianService
         return musician.ToDto();
     }
 
-    public async Task DeleteMusician(Guid id, CancellationToken ct)
+    public async Task DeleteMusicianAsync(Guid id, CancellationToken ct)
     {
         var foundMusician = await dbContext.Musicians.FindAsync([id], cancellationToken: ct);
         if (foundMusician == null)
@@ -132,7 +142,7 @@ public class MusicianService(ApplicationDbContext dbContext) : IMusicianService
         await dbContext.SaveChangesAsync(ct);
     }
 
-    public async Task<MusicianDto> GetMusicianById(Guid id, CancellationToken ct)
+    public async Task<MusicianDto> GetMusicianByIdAsync(Guid id, CancellationToken ct)
     {
         var foundMusician = await dbContext.Musicians
             .Include(m => m.Location)
@@ -149,7 +159,7 @@ public class MusicianService(ApplicationDbContext dbContext) : IMusicianService
         return foundMusician.ToDto();
     }
 
-    public async Task<List<MusicianListDto>> GetMusicians(CancellationToken ct)
+    public async Task<List<MusicianListDto>> GetMusiciansAsync(CancellationToken ct)
     {
         return await dbContext.Musicians.Select(m => new MusicianListDto(m.Id, m.Username, m.Location.City))
             .ToListAsync(cancellationToken: ct);

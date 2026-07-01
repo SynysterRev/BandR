@@ -82,7 +82,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMusicianService, MusicianService>();
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<ITokenService, TokenService>();
-        // services.AddScoped<IAnnouncementService, AnnouncementService>();
+        services.AddScoped<IAnnouncementService, AnnouncementService>();
         return services;
     }
 

@@ -1,4 +1,6 @@
-﻿using BandR.DTOs.Musicians;
+﻿using BandR.Common;
+using BandR.DTOs.Announcements;
+using BandR.DTOs.Musicians;
 using BandR.Extensions;
 using BandR.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -8,21 +10,23 @@ namespace BandR.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class MusiciansController(IMusicianService musicianService) : Controller
+public class MusiciansController(
+    IMusicianService musicianService,
+    IAnnouncementService announcementService
+) : Controller
 {
-    
     [HttpGet]
     [Authorize]
     public async Task<ActionResult<List<MusicianListDto>>> GetMusicians(CancellationToken ct)
     {
-        return Ok(await musicianService.GetMusicians(ct));
+        return Ok(await musicianService.GetMusiciansAsync(ct));
     }
-    
+
     [HttpGet("{id}")]
     [Authorize]
     public async Task<ActionResult<MusicianDto>> GetMusician([FromRoute] Guid id, CancellationToken ct)
     {
-        return Ok(await musicianService.GetMusicianById(id, ct));
+        return Ok(await musicianService.GetMusicianByIdAsync(id, ct));
     }
 
     [HttpPost]
@@ -30,7 +34,27 @@ public class MusiciansController(IMusicianService musicianService) : Controller
     public async Task<ActionResult> CreateMusician(CreateMusicianDto dto, CancellationToken ct)
     {
         var userId = User.GetUserId();
-        var musician = await musicianService.CreateMusician(dto, userId, ct);
+        var musician = await musicianService.CreateMusicianAsync(dto, userId, ct);
         return CreatedAtAction(nameof(GetMusician), new { id = musician.Id }, musician);
+    }
+
+    [HttpGet("{id}/announcements")]
+    [Authorize]
+    public async Task<ActionResult<PagedResponse<AnnouncementListDto>>> GetAnnouncementsForMusician(
+        [FromRoute] Guid id,
+        [FromQuery] AnnouncementQueryFilter filter,
+        CancellationToken ct)
+    {
+        return Ok(await announcementService.GetAnnouncementsForMusicianAsync(id, filter, ct));
+    }
+    
+    [HttpGet("me/announcements")]
+    [Authorize]
+    public async Task<ActionResult<PagedResponse<AnnouncementListDto>>> GetMyAnnouncements(
+        [FromQuery] AnnouncementQueryFilter filter,
+        CancellationToken ct)
+    {
+        var appUserId = User.GetUserId();
+        return Ok(await announcementService.GetAnnouncementsForMusicianAsync(appUserId, filter, ct));
     }
 }

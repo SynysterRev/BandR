@@ -7,7 +7,7 @@ public record CreateAnnouncementDto(
     string Description,
     string City,
     AnnouncementType Type,
-    List<Guid> InstrumentIds,
-    List<Guid> TagIds,
-    List<Guid> StyleIds
+    List<Guid>? InstrumentIds,
+    List<Guid>? TagIds,
+    List<Guid>? StyleIds
 );

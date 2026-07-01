@@ -61,7 +61,7 @@ public sealed class MusicianServiceTests : IAsyncLifetime
             TagIds: [],
             Bio: null
         );
-        return await _musicianService.CreateMusician(dto, _appUserId, CancellationToken.None);
+        return await _musicianService.CreateMusicianAsync(dto, _appUserId, CancellationToken.None);
     }
 
     // ---- CreateMusician ----
@@ -109,7 +109,7 @@ public sealed class MusicianServiceTests : IAsyncLifetime
             Bio: null
         );
 
-        var result = await _musicianService.CreateMusician(dto, _appUserId, CancellationToken.None);
+        var result = await _musicianService.CreateMusicianAsync(dto, _appUserId, CancellationToken.None);
 
         Assert.Single(result.Instruments);
         Assert.Equal("Test Guitar", result.Instruments[0]);
@@ -122,7 +122,7 @@ public sealed class MusicianServiceTests : IAsyncLifetime
     {
         var created = await CreateDefaultMusician();
 
-        var result = await _musicianService.GetMusicianById(created.Id, CancellationToken.None);
+        var result = await _musicianService.GetMusicianByIdAsync(created.Id, CancellationToken.None);
 
         Assert.NotNull(result);
         Assert.Equal(created.Id, result.Id);
@@ -133,7 +133,7 @@ public sealed class MusicianServiceTests : IAsyncLifetime
     public async Task GetMusicianById_ShouldThrow_WhenNotFound()
     {
         await Assert.ThrowsAsync<MusicianException.MusicianNotFoundException>(() =>
-            _musicianService.GetMusicianById(Guid.NewGuid(), CancellationToken.None)
+            _musicianService.GetMusicianByIdAsync(Guid.NewGuid(), CancellationToken.None)
         );
     }
 
@@ -146,7 +146,7 @@ public sealed class MusicianServiceTests : IAsyncLifetime
         await CreateDefaultMusician(username: "Musician2");
         var countAfter = await _dbContext.Musicians.CountAsync();
 
-        var result = await _musicianService.GetMusicians(CancellationToken.None);
+        var result = await _musicianService.GetMusiciansAsync(CancellationToken.None);
 
         Assert.Equal(countAfter, result.Count);
     }
@@ -154,7 +154,7 @@ public sealed class MusicianServiceTests : IAsyncLifetime
     [Fact]
     public async Task GetMusicians_ShouldReturnEmpty_WhenNoMusicians()
     {
-        var result = await _musicianService.GetMusicians(CancellationToken.None);
+        var result = await _musicianService.GetMusiciansAsync(CancellationToken.None);
 
         Assert.Empty(result);
     }
@@ -175,7 +175,7 @@ public sealed class MusicianServiceTests : IAsyncLifetime
             TagIds: null
         );
 
-        var result = await _musicianService.UpdateMusician(created.Id, updateDto, _appUserId, CancellationToken.None);
+        var result = await _musicianService.UpdateMusicianAsync(created.Id, updateDto, _appUserId, CancellationToken.None);
 
         Assert.Equal("UpdatedUsername", result.Username);
     }
@@ -193,7 +193,7 @@ public sealed class MusicianServiceTests : IAsyncLifetime
         );
 
         await Assert.ThrowsAsync<MusicianException.MusicianNotFoundException>(() =>
-            _musicianService.UpdateMusician(Guid.NewGuid(), updateDto, _appUserId, CancellationToken.None)
+            _musicianService.UpdateMusicianAsync(Guid.NewGuid(), updateDto, _appUserId, CancellationToken.None)
         );
     }
 
@@ -213,7 +213,7 @@ public sealed class MusicianServiceTests : IAsyncLifetime
         );
 
         await Assert.ThrowsAsync<MusicianException.MusicianForbiddenException>(() =>
-            _musicianService.UpdateMusician(created.Id, updateDto, otherUserId, CancellationToken.None)
+            _musicianService.UpdateMusicianAsync(created.Id, updateDto, otherUserId, CancellationToken.None)
         );
     }
 
@@ -231,7 +231,7 @@ public sealed class MusicianServiceTests : IAsyncLifetime
             TagIds: null
         );
 
-        var result = await _musicianService.UpdateMusician(created.Id, updateDto, _appUserId, CancellationToken.None);
+        var result = await _musicianService.UpdateMusicianAsync(created.Id, updateDto, _appUserId, CancellationToken.None);
 
         Assert.Equal("OriginalName", result.Username);
     }
@@ -243,10 +243,10 @@ public sealed class MusicianServiceTests : IAsyncLifetime
     {
         var created = await CreateDefaultMusician();
 
-        await _musicianService.DeleteMusician(created.Id, CancellationToken.None);
+        await _musicianService.DeleteMusicianAsync(created.Id, CancellationToken.None);
 
         await Assert.ThrowsAsync<MusicianException.MusicianNotFoundException>(() =>
-            _musicianService.GetMusicianById(created.Id, CancellationToken.None)
+            _musicianService.GetMusicianByIdAsync(created.Id, CancellationToken.None)
         );
     }
 
@@ -254,7 +254,7 @@ public sealed class MusicianServiceTests : IAsyncLifetime
     public async Task DeleteMusician_ShouldThrow_WhenNotFound()
     {
         await Assert.ThrowsAsync<MusicianException.MusicianNotFoundException>(() =>
-            _musicianService.DeleteMusician(Guid.NewGuid(), CancellationToken.None)
+            _musicianService.DeleteMusicianAsync(Guid.NewGuid(), CancellationToken.None)
         );
     }
 }
