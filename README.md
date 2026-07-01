@@ -8,11 +8,11 @@
 
 ## Features
 
-- **Authentication** — JWT-based auth with access & refresh tokens
-- **Musician profiles** — username, bio, location, instruments, styles, tags
-- **Announcements** — post and browse ads with filtering and pagination
-- **Messaging** — start conversations directly from an announcement *(in progress)*
-- **Reference data** — curated list of instruments, music styles and tags
+- **Authentication**: JWT-based auth with access & refresh tokens
+- **Musician profiles**: username, bio, location, instruments, styles, tags
+- **Announcements**: post and browse ads with filtering and pagination
+- **Messaging**: start conversations directly from an announcement *(in progress)*
+- **Reference data**: curated list of instruments, music styles and tags
 
 ---
 
