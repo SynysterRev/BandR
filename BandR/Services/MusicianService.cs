@@ -159,6 +159,23 @@ public class MusicianService(ApplicationDbContext dbContext) : IMusicianService
         return foundMusician.ToDto();
     }
 
+    public async Task<MusicianDto> GetMusicianByUserIdAsync(Guid appUserId, CancellationToken ct)
+    {
+        var foundMusician = await dbContext.Musicians
+            .Include(m => m.Location)
+            .Include(m => m.MusicianInstruments).ThenInclude(mi => mi.Instrument)
+            .Include(m => m.Styles)
+            .Include(m => m.Tags)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(m => m.AppUserId == appUserId, ct);
+        if (foundMusician == null)
+        {
+            throw new MusicianException.MusicianNotFoundException(appUserId);
+        }
+
+        return foundMusician.ToDto();
+    }
+
     public async Task<List<MusicianListDto>> GetMusiciansAsync(CancellationToken ct)
     {
         return await dbContext.Musicians.Select(m => new MusicianListDto(m.Id, m.Username, m.Location.City))

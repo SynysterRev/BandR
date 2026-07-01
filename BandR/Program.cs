@@ -1,6 +1,4 @@
-using BandR.Entities;
 using BandR.Extensions;
-using Microsoft.AspNetCore.Identity;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options => { options.AddDocumentTransformer<BearerSecuritySchemeTransformer>(); });
 
 builder.Services.AddDatabase(builder.Configuration);
 builder.Services.AddApplicationServices(builder.Configuration);

@@ -8,5 +8,6 @@ public interface IMusicianService
     public Task<MusicianDto> UpdateMusicianAsync(Guid id, UpdateMusicianDto dto, Guid appUserId, CancellationToken ct);
     public Task DeleteMusicianAsync(Guid id, CancellationToken ct);
     public Task<MusicianDto> GetMusicianByIdAsync(Guid id, CancellationToken ct);
+    public Task<MusicianDto> GetMusicianByUserIdAsync(Guid id, CancellationToken ct);
     public Task<List<MusicianListDto>> GetMusiciansAsync(CancellationToken ct);
 }

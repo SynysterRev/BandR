@@ -9,7 +9,7 @@ namespace BandR.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AnnouncementsController(IAnnouncementService announcementService) : ControllerBase
+public class AnnouncementsController(IAnnouncementService announcementService, IMusicianService musicianService) : ControllerBase
 {
     [HttpGet]
     [Authorize]
@@ -30,8 +30,8 @@ public class AnnouncementsController(IAnnouncementService announcementService) :
     [Authorize]
     public async Task<ActionResult> CreateAnnouncement([FromBody] CreateAnnouncementDto dto, CancellationToken ct)
     {
-        var userId = User.GetUserId();
-        var announcement = await announcementService.CreateAnnouncementAsync(dto, userId, ct);
+        var musician = await musicianService.GetMusicianByUserIdAsync(User.GetUserId(), ct);
+        var announcement = await announcementService.CreateAnnouncementAsync(dto, musician.Id, ct);
         return CreatedAtAction(nameof(GetAnnouncementById), new { id = announcement.Id }, announcement);
     }
 
@@ -39,8 +39,8 @@ public class AnnouncementsController(IAnnouncementService announcementService) :
     [Authorize]
     public async Task<ActionResult> DisableAnnouncementById([FromRoute] Guid id, CancellationToken ct)
     {
-        var userId = User.GetUserId();
-        await announcementService.DeleteAnnouncementAsync(id, userId, ct);
+        var musician = await musicianService.GetMusicianByUserIdAsync(User.GetUserId(), ct);
+        await announcementService.DeleteAnnouncementAsync(id, musician.Id, ct);
         return NoContent();
     }
 }
