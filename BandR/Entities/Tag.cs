@@ -1,5 +1,3 @@
-using BandR.Entities.Joints;
-
 namespace BandR.Entities;
 
 public class Tag : BaseEntity

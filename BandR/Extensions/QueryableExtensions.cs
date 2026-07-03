@@ -1,5 +1,7 @@
 using System.Reflection;
 using System.Linq.Dynamic.Core;
+using BandR.Common;
+using BandR.Entities;
 
 namespace BandR.Extensions;
 
@@ -19,6 +21,8 @@ public static class QueryableExtensions
 
         var allowedProperties = typeof(T)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => p.PropertyType == typeof(string) 
+                        || p.PropertyType.IsValueType)
             .Select(p => p.Name)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -40,5 +44,44 @@ public static class QueryableExtensions
         return sortExpressions.Count > 0
             ? query.OrderBy(string.Join(", ", sortExpressions))
             : query;
+    }
+    
+    public static IQueryable<Announcement> ApplyFilters(this IQueryable<Announcement> query, AnnouncementQueryFilter filter)
+    {
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var searchLower = filter.Search.ToLower();
+            query = query.Where(a => a.Title.ToLower().Contains(searchLower) 
+                                     || a.Description.ToLower().Contains(searchLower));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.City))
+        {
+            var cityLower = filter.City.ToLower();
+            query = query.Where(a => a.Location.City.ToLower() == cityLower);
+        }
+
+        if (filter.Instruments?.Count > 0)
+        {
+            var targetInstruments = filter.Instruments.Select(i => i.ToLower()).ToList();
+            query = query.Where(a => a.AnnouncementInstruments
+                .Any(ai => targetInstruments.Contains(ai.Instrument.Name.ToLower())));
+        }
+
+        if (filter.Styles?.Count > 0)
+        {
+            var targetStyles = filter.Styles.Select(s => s.ToLower()).ToList();
+            query = query.Where(a => a.Styles
+                .Any(s => targetStyles.Contains(s.Name.ToLower())));
+        }
+        
+        if (filter.Tags?.Count > 0)
+        {
+            var targetTags = filter.Tags.Select(t => t.ToLower()).ToList();
+            query = query.Where(a => a.Tags
+                .Any(t => targetTags.Contains(t.Name.ToLower())));
+        }
+
+        return query;
     }
 }

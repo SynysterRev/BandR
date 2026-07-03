@@ -38,10 +38,12 @@ public class AnnouncementService(ApplicationDbContext dbContext) : IAnnouncement
         var query = dbContext.Announcements.AsNoTracking()
             .AsQueryable()
             .Where(a => a.IsActive);
+        
+        query = query.ApplyFilters(filter);
 
         var totalRecords = await query.CountAsync(cancellationToken);
 
-        query = query.ApplySort(string.IsNullOrWhiteSpace(filter.SortBy) ? "CreatedAt" : filter.SortBy);
+        query = query.ApplySort(string.IsNullOrWhiteSpace(filter.SortBy) ? "CreatedAt desc" : filter.SortBy);
 
         var announcements = await query.ApplyPagination(pageNumber, pageSize)
             .Select(a => new AnnouncementListDto(

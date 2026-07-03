@@ -4,6 +4,7 @@ using BandR.Data;
 using BandR.Entities;
 using BandR.Services;
 using BandR.Services.Interfaces;
+using BandR.Validators.Announcements;
 using BandR.Validators.Musicians;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -98,6 +99,9 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddValidators(this IServiceCollection services)
     {
         services.AddValidatorsFromAssemblyContaining<CreateMusicianDtoValidator>();
+        services.AddValidatorsFromAssemblyContaining<CreateAnnouncementDtoValidator>();
+        services.AddValidatorsFromAssemblyContaining<UpdateMusicianDtoValidator>();
+        services.AddValidatorsFromAssemblyContaining<UpdateAnnouncementDtoValidator>();
         return services;
     }
 }
