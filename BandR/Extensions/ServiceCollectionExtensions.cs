@@ -84,6 +84,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IAnnouncementService, AnnouncementService>();
+        services.AddScoped<IConversationService, ConversationService>();
         return services;
     }
 

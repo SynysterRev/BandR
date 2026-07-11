@@ -1,6 +1,6 @@
 namespace BandR.Entities;
 
-public class Message :BaseEntity
+public class Message : BaseEntity
 {
     public string Content { get; set; } =  string.Empty;
     public DateTime SentAt { get; set; }
