@@ -7,8 +7,8 @@ public class UpdateAnnouncementDtoValidator : AbstractValidator<UpdateAnnounceme
 {
     public UpdateAnnouncementDtoValidator()
     {
-        RuleFor(x => x.Title).MaximumLength(100).When(x => x.Title != null);
-        RuleFor(x => x.Description).MaximumLength(500).When(x => x.Description != null);
-        RuleFor(x => x.City).MaximumLength(200).When(x => x.City != null);
+        RuleFor(x => x.Title).MaximumLength(100).NotEmpty().When(x => x.Title != null);
+        RuleFor(x => x.Description).MaximumLength(500).NotEmpty().When(x => x.Description != null);
+        RuleFor(x => x.City).MaximumLength(200).NotEmpty().When(x => x.City != null);
     }
 }
