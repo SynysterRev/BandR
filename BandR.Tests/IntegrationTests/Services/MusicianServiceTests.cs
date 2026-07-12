@@ -3,50 +3,24 @@ using BandR.DTOs.Musicians;
 using BandR.Entities;
 using BandR.Exceptions;
 using BandR.Services;
+using BandR.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Testcontainers.PostgreSql;
 
 namespace BandR.Tests.IntegrationTests.Services;
 
-public sealed class MusicianServiceTests : IAsyncLifetime
+public sealed class MusicianServiceTests : IClassFixture<TestDatabaseFixture>
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16-alpine")
-        .Build();
+    private readonly IMusicianService _musicianService;
+    private readonly ApplicationDbContext _dbContext;
+    private readonly Guid _appUserId;
 
-    private ApplicationDbContext _dbContext = null!;
-    private MusicianService _musicianService = null!;
-    private readonly Guid _appUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
-
-    public async Task InitializeAsync()
+    public MusicianServiceTests(TestDatabaseFixture fixture)
     {
-        await _postgres.StartAsync();
-
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
-            .Options;
-
-        _dbContext = new ApplicationDbContext(options);
-        await _dbContext.Database.MigrateAsync();
-
-        await _dbContext.Users.AddAsync(new ApplicationUser
-        {
-            Id = _appUserId,
-            UserName = "testuser",
-            Email = "test@test.com",
-            EmailConfirmed = true,
-            SecurityStamp = Guid.NewGuid().ToString()
-        });
-        await _dbContext.SaveChangesAsync();
-
+        _dbContext = fixture.DbContext;
         _musicianService = new MusicianService(_dbContext);
+        _appUserId = fixture.AppUserId;
     }
-
-    public async Task DisposeAsync()
-    {
-        await _dbContext.DisposeAsync();
-        await _postgres.DisposeAsync();
-    }
-
     // ---- Helpers ----
 
     private async Task<MusicianDto> CreateDefaultMusician(
@@ -175,7 +149,8 @@ public sealed class MusicianServiceTests : IAsyncLifetime
             TagIds: null
         );
 
-        var result = await _musicianService.UpdateMusicianAsync(created.Id, updateDto, _appUserId, CancellationToken.None);
+        var result =
+            await _musicianService.UpdateMusicianAsync(created.Id, updateDto, _appUserId, CancellationToken.None);
 
         Assert.Equal("UpdatedUsername", result.Username);
     }
@@ -231,7 +206,8 @@ public sealed class MusicianServiceTests : IAsyncLifetime
             TagIds: null
         );
 
-        var result = await _musicianService.UpdateMusicianAsync(created.Id, updateDto, _appUserId, CancellationToken.None);
+        var result =
+            await _musicianService.UpdateMusicianAsync(created.Id, updateDto, _appUserId, CancellationToken.None);
 
         Assert.Equal("OriginalName", result.Username);
     }
