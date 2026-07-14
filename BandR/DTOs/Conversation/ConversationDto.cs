@@ -4,5 +4,6 @@ namespace BandR.DTOs.Conversation;
 
 public record ConversationDto(
     Guid Id,
-    List<MessageDto> Messages
+    List<MessageDto> Messages,
+    Guid? AnnouncementId
 );

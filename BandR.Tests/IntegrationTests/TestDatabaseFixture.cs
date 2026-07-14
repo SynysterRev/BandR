@@ -1,4 +1,5 @@
 using BandR.Data;
+using BandR.DTOs.Announcements;
 using BandR.DTOs.Musicians;
 using BandR.Entities;
 using BandR.Services;
@@ -91,5 +92,26 @@ public class TestDatabaseFixture : IAsyncLifetime
         );
         var musicianService = new MusicianService(DbContext);
         return await musicianService.CreateMusicianAsync(dto, targetUserId, CancellationToken.None);
+    }
+    
+    public async Task<AnnouncementDto> CreateDefaultAnnouncement(
+        string title = "Looking for Bassist",
+        string city = "London",
+        Guid? musicianId = null)
+    {
+        var targetMusicianId = musicianId ?? (await CreateDefaultMusician(customUserId: Guid.NewGuid())).Id;
+
+        var dto = new CreateAnnouncementDto(
+            Title: title,
+            Description: "For an alternative rock band",
+            City: city,
+            Type: AnnouncementType.LookingForMusician,
+            InstrumentIds: [],
+            StyleIds: [],
+            TagIds: []
+        );
+
+        var announcementService = new AnnouncementService(DbContext);
+        return await announcementService.CreateAnnouncementAsync(dto, targetMusicianId, CancellationToken.None);
     }
 }

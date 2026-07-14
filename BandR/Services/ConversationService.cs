@@ -3,6 +3,7 @@ using BandR.DTOs.Conversation;
 using BandR.DTOs.Messages;
 using BandR.Entities;
 using BandR.Entities.Joints;
+using BandR.Exceptions;
 using BandR.Extensions;
 using BandR.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +22,28 @@ public class ConversationService(ApplicationDbContext dbContext) : IConversation
                     cancellationToken);
             if (announcement is null)
             {
-                // throw exception
+                throw new AnnouncementException.AnnouncementNotFoundException(conversationDto.AnnouncementId.Value);
+            }
+
+            var foundConv = await dbContext.Conversations
+                .Where(c => c.AnnouncementId == announcement.Id)
+                .Where(c => c.MusicianConversations.Any(mc => mc.MusicianId == musicianId) &&
+                            c.MusicianConversations.Any(mc => mc.MusicianId == conversationDto.OtherMusicianId))
+                .FirstOrDefaultAsync(cancellationToken);
+            if (foundConv is not null)
+            {
+                return foundConv.ToDto();
+            }
+        }
+        else
+        {
+            var foundConv = await dbContext.Conversations
+                .Where(c => c.MusicianConversations.Any(mc => mc.MusicianId == musicianId) &&
+                            c.MusicianConversations.Any(mc => mc.MusicianId == conversationDto.OtherMusicianId))
+                .FirstOrDefaultAsync(cancellationToken);
+            if (foundConv is not null)
+            {
+                return foundConv.ToDto();
             }
         }
 
@@ -30,7 +52,7 @@ public class ConversationService(ApplicationDbContext dbContext) : IConversation
                 cancellationToken);
         if (otherMusician is null)
         {
-            // throw exception
+            throw new MusicianException.MusicianNotFoundException(conversationDto.OtherMusicianId);
         }
 
         Conversation conversation = new Conversation
@@ -56,7 +78,8 @@ public class ConversationService(ApplicationDbContext dbContext) : IConversation
         conversation.MusicianConversations.Add(otherMusicianConv);
         dbContext.Conversations.Add(conversation);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return new ConversationDto(conversation.Id, conversation.Messages.Select(m => m.ToDto()).ToList());
+        return new ConversationDto(conversation.Id, conversation.Messages.Select(m => m.ToDto()).ToList(),
+            conversationDto.AnnouncementId);
     }
 
     public async Task<MessageDto> SendMessage(Guid musicianId, Guid conversationId, CreateMessageDto message,
@@ -66,7 +89,7 @@ public class ConversationService(ApplicationDbContext dbContext) : IConversation
             await dbContext.Conversations.FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken);
         if (conversation is null)
         {
-            // throw
+            throw new ConversationException.ConversationNotFoundException(conversationId);
         }
 
         var createdMessage = new Message
@@ -91,12 +114,12 @@ public class ConversationService(ApplicationDbContext dbContext) : IConversation
             .FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken);
         if (conversation is null)
         {
-            // throw
+            throw new ConversationException.ConversationNotFoundException(conversationId);
         }
 
-        if (!conversation.MusicianConversations.Any(mc => mc.MusicianId == musicianId))
+        if (conversation.MusicianConversations.All(mc => mc.MusicianId != musicianId))
         {
-            // throw
+            throw new ConversationException.ConversationForbiddenException(conversationId);
         }
 
         return conversation.ToDto();

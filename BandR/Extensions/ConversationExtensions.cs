@@ -16,6 +16,7 @@ public static class ConversationExtensions
     public static ConversationDto ToDto(this Conversation conversation) =>
         new ConversationDto(
             conversation.Id,
-            conversation.Messages.Select(m => m.ToDto()).ToList()
+            conversation.Messages.Select(m => m.ToDto()).ToList(),
+            conversation.AnnouncementId
         );
 }

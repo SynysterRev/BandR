@@ -40,39 +40,17 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
         _dbContext.ChangeTracker.Clear();
 
         await _fixture.SeedDefaultDataAsync();
-
-        // _appUserId = _fixture.AppUserId;
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
     // ---- Helpers ----
-
-    private async Task<AnnouncementDto> CreateDefaultAnnouncement(
-        string title = "Looking for Bassist",
-        string city = "London",
-        Guid? musicianId = null)
-    {
-        var targetMusicianId = musicianId ?? (await _fixture.CreateDefaultMusician(customUserId: Guid.NewGuid())).Id;
-
-        var dto = new CreateAnnouncementDto(
-            Title: title,
-            Description: "For an alternative rock band",
-            City: city,
-            Type: AnnouncementType.LookingForMusician,
-            InstrumentIds: [],
-            StyleIds: [],
-            TagIds: []
-        );
-
-        return await _announcementService.CreateAnnouncementAsync(dto, targetMusicianId, CancellationToken.None);
-    }
 
     // ---- CreateAnnouncement ----
 
     [Fact]
     public async Task CreateAnnouncement_ShouldReturnAnnouncementDto()
     {
-        var result = await CreateDefaultAnnouncement();
+        var result = await _fixture.CreateDefaultAnnouncement();
 
         Assert.NotNull(result);
         Assert.Equal("Looking for Bassist", result.Title);
@@ -82,8 +60,8 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
     [Fact]
     public async Task CreateAnnouncement_ShouldReuseExistingLocation()
     {
-        await CreateDefaultAnnouncement(title: "Announcement 1", city: "Manchester");
-        await CreateDefaultAnnouncement(title: "Announcement 2", city: "Manchester");
+        await _fixture.CreateDefaultAnnouncement(title: "Announcement 1", city: "Manchester");
+        await _fixture.CreateDefaultAnnouncement(title: "Announcement 2", city: "Manchester");
 
         var locationCount = await _dbContext.Locations
             .CountAsync(l => l.City.ToLower() == "manchester");
@@ -96,7 +74,7 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
     [Fact]
     public async Task GetAnnouncementById_ShouldReturnAnnouncement()
     {
-        var created = await CreateDefaultAnnouncement();
+        var created = await _fixture.CreateDefaultAnnouncement();
 
         var result = await _announcementService.GetAnnouncementByIdAsync(created.Id, CancellationToken.None);
 
@@ -118,9 +96,9 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
     [Fact]
     public async Task GetAnnouncements_ShouldReturnOnlyActiveAnnouncements()
     {
-        await CreateDefaultAnnouncement(title: "Active 1");
+        await _fixture.CreateDefaultAnnouncement(title: "Active 1");
 
-        var inactive = await CreateDefaultAnnouncement(title: "Inactive 1");
+        var inactive = await _fixture.CreateDefaultAnnouncement(title: "Inactive 1");
         var entity = await _dbContext.Announcements.FindAsync(inactive.Id);
         entity!.IsActive = false;
         await _dbContext.SaveChangesAsync();
@@ -160,8 +138,8 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
         });
         await _dbContext.SaveChangesAsync();
 
-        await CreateDefaultAnnouncement(title: "My great announcement", musicianId: musician.Entity.Id);
-        await CreateDefaultAnnouncement(title: "Someone else's announcement", musicianId: otherMusicianId);
+        await _fixture.CreateDefaultAnnouncement(title: "My great announcement", musicianId: musician.Entity.Id);
+        await _fixture.CreateDefaultAnnouncement(title: "Someone else's announcement", musicianId: otherMusicianId);
 
         var filter = new AnnouncementQueryFilter { PageNumber = 1, PageSize = 1 };
         var result =
@@ -179,7 +157,7 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
     {
         var musician = await _fixture.CreateDefaultMusician();
 
-        var created = await CreateDefaultAnnouncement(musicianId: musician.Id);
+        var created = await _fixture.CreateDefaultAnnouncement(musicianId: musician.Id);
 
         var updateDto = new UpdateAnnouncementDto(
             Title: "Updated Title",
@@ -205,7 +183,7 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
     [Fact]
     public async Task UpdateAnnouncement_ShouldThrow_WhenForbidden()
     {
-        var created = await CreateDefaultAnnouncement();
+        var created = await _fixture.CreateDefaultAnnouncement();
         var fakeMusicianId = Guid.NewGuid();
 
         var updateDto = new UpdateAnnouncementDto(
@@ -238,7 +216,7 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
     public async Task DeleteAnnouncement_ShouldRemoveFromDatabase()
     {
         var musician = await _fixture.CreateDefaultMusician();
-        var created = await CreateDefaultAnnouncement(musicianId: musician.Id);
+        var created = await _fixture.CreateDefaultAnnouncement(musicianId: musician.Id);
 
         await _announcementService.DeleteAnnouncementAsync(created.Id, musician.Id, CancellationToken.None);
 
@@ -249,7 +227,7 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
     [Fact]
     public async Task DeleteAnnouncement_ShouldThrow_WhenForbidden()
     {
-        var created = await CreateDefaultAnnouncement();
+        var created = await _fixture.CreateDefaultAnnouncement();
         var fakeMusicianId = Guid.NewGuid();
 
         await Assert.ThrowsAsync<AnnouncementException.AnnouncementForbiddenException>(() =>
