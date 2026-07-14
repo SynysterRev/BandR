@@ -1,17 +1,20 @@
 using BandR.Data;
+using BandR.DTOs.Musicians;
 using BandR.Entities;
+using BandR.Services;
+using BandR.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Testcontainers.PostgreSql;
 
 namespace BandR.Tests.IntegrationTests;
 
-public class TestDatabaseFixture: IAsyncLifetime
+public class TestDatabaseFixture : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16-alpine")
         .Build();
 
     public ApplicationDbContext DbContext = null!;
-    public readonly Guid MusicianId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+    public string ConnectionString => _postgres.GetConnectionString();
     public Guid AppUserId;
 
     public async Task InitializeAsync()
@@ -25,6 +28,11 @@ public class TestDatabaseFixture: IAsyncLifetime
         DbContext = new ApplicationDbContext(options);
         await DbContext.Database.MigrateAsync();
 
+        await SeedDefaultDataAsync();
+    }
+
+    public async Task SeedDefaultDataAsync()
+    {
         var defaultLocation = new Location
         {
             Id = Guid.NewGuid(),
@@ -35,32 +43,53 @@ public class TestDatabaseFixture: IAsyncLifetime
 
         var appUser = new ApplicationUser
         {
-            Id = MusicianId,
             UserName = "testuser",
             Email = "test@test.com",
             EmailConfirmed = true,
             SecurityStamp = Guid.NewGuid().ToString()
         };
         await DbContext.Users.AddAsync(appUser);
-    
-        await DbContext.SaveChangesAsync(); 
-        
-        AppUserId = appUser.Id;
-
-        await DbContext.Musicians.AddAsync(new Musician
-        {
-            Id = MusicianId,
-            AppUserId = MusicianId,
-            Username = "TestMusician",
-            LocationId = defaultLocation.Id,
-            CreatedAt = DateTime.UtcNow
-        });
         await DbContext.SaveChangesAsync();
+
+        AppUserId = appUser.Id;
     }
 
     public async Task DisposeAsync()
     {
         await DbContext.DisposeAsync();
         await _postgres.DisposeAsync();
+    }
+    
+    public async Task<MusicianDto> CreateDefaultMusician(
+        string username = "TestMusician",
+        string city = "Montpellier",
+        Guid? customUserId = null)
+    {
+        var targetUserId = customUserId ?? AppUserId;
+
+        if (customUserId.HasValue)
+        {
+            var appUser = new ApplicationUser
+            {
+                Id = customUserId.Value,
+                UserName = $"user_{Guid.NewGuid().ToString()[..8]}",
+                Email = $"{Guid.NewGuid()}@test.com",
+                EmailConfirmed = true,
+                SecurityStamp = Guid.NewGuid().ToString()
+            };
+            await DbContext.Users.AddAsync(appUser);
+            await DbContext.SaveChangesAsync();
+        }
+
+        var dto = new CreateMusicianDto(
+            Username: username,
+            City: city,
+            InstrumentIds: [],
+            StyleIds: [],
+            TagIds: [],
+            Bio: null
+        );
+        var musicianService = new MusicianService(DbContext);
+        return await musicianService.CreateMusicianAsync(dto, targetUserId, CancellationToken.None);
     }
 }

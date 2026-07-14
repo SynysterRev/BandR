@@ -16,7 +16,6 @@ public class ConversationServiceTests : IClassFixture<TestDatabaseFixture>
     public ConversationServiceTests(TestDatabaseFixture fixture)
     {
         _conversationService = new ConversationService(fixture.DbContext);
-        _musicianId = fixture.MusicianId;
         _dbContext = fixture.DbContext;
     }
 

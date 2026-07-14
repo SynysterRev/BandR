@@ -5,45 +5,55 @@ using BandR.Exceptions;
 using BandR.Services;
 using BandR.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using Respawn;
 using Testcontainers.PostgreSql;
 
 namespace BandR.Tests.IntegrationTests.Services;
 
-public sealed class MusicianServiceTests : IClassFixture<TestDatabaseFixture>
+public sealed class MusicianServiceTests : IClassFixture<TestDatabaseFixture>, IAsyncLifetime
 {
+    private readonly TestDatabaseFixture _fixture;
     private readonly IMusicianService _musicianService;
     private readonly ApplicationDbContext _dbContext;
-    private readonly Guid _appUserId;
+    private Guid _appUserId;
 
     public MusicianServiceTests(TestDatabaseFixture fixture)
     {
+        _fixture = fixture;
         _dbContext = fixture.DbContext;
         _musicianService = new MusicianService(_dbContext);
-        _appUserId = fixture.AppUserId;
     }
-    // ---- Helpers ----
-
-    private async Task<MusicianDto> CreateDefaultMusician(
-        string username = "TestMusician",
-        string city = "Montpellier")
+    
+    public async Task InitializeAsync()
     {
-        var dto = new CreateMusicianDto(
-            Username: username,
-            City: city,
-            InstrumentIds: [],
-            StyleIds: [],
-            TagIds: [],
-            Bio: null
-        );
-        return await _musicianService.CreateMusicianAsync(dto, _appUserId, CancellationToken.None);
+        using var connection = new NpgsqlConnection(_fixture.ConnectionString);
+        await connection.OpenAsync();
+
+        var respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
+        {
+            DbAdapter = DbAdapter.Postgres,
+            TablesToIgnore = new Respawn.Graph.Table[] { "__EFMigrationsHistory" }
+        });
+
+        await respawner.ResetAsync(connection);
+        
+        _dbContext.ChangeTracker.Clear();
+
+        await _fixture.SeedDefaultDataAsync();
+    
+        _appUserId = _fixture.AppUserId;
     }
+
+    public Task DisposeAsync() => Task.CompletedTask;
+    // ---- Helpers ----
 
     // ---- CreateMusician ----
 
     [Fact]
     public async Task CreateMusician_ShouldReturnMusicianDto()
     {
-        var result = await CreateDefaultMusician();
+        var result = await _fixture.CreateDefaultMusician();
 
         Assert.NotNull(result);
         Assert.Equal("TestMusician", result.Username);
@@ -53,8 +63,8 @@ public sealed class MusicianServiceTests : IClassFixture<TestDatabaseFixture>
     [Fact]
     public async Task CreateMusician_ShouldReuseExistingLocation()
     {
-        await CreateDefaultMusician(username: "Musician1", city: "Montpellier");
-        await CreateDefaultMusician(username: "Musician2", city: "Montpellier");
+        await _fixture.CreateDefaultMusician(username: "Musician1", city: "Montpellier");
+        await _fixture.CreateDefaultMusician(username: "Musician2", city: "Montpellier");
 
         var locationCount = await _dbContext.Locations
             .CountAsync(l => l.City.ToLower() == "montpellier");
@@ -94,7 +104,7 @@ public sealed class MusicianServiceTests : IClassFixture<TestDatabaseFixture>
     [Fact]
     public async Task GetMusicianById_ShouldReturnMusician()
     {
-        var created = await CreateDefaultMusician();
+        var created = await _fixture.CreateDefaultMusician();
 
         var result = await _musicianService.GetMusicianByIdAsync(created.Id, CancellationToken.None);
 
@@ -116,8 +126,8 @@ public sealed class MusicianServiceTests : IClassFixture<TestDatabaseFixture>
     [Fact]
     public async Task GetMusicians_ShouldReturnAllMusicians()
     {
-        await CreateDefaultMusician(username: "Musician1");
-        await CreateDefaultMusician(username: "Musician2");
+        await _fixture.CreateDefaultMusician(username: "Musician1");
+        await _fixture.CreateDefaultMusician(username: "Musician2");
         var countAfter = await _dbContext.Musicians.CountAsync();
 
         var result = await _musicianService.GetMusiciansAsync(CancellationToken.None);
@@ -138,7 +148,7 @@ public sealed class MusicianServiceTests : IClassFixture<TestDatabaseFixture>
     [Fact]
     public async Task UpdateMusician_ShouldUpdateUsername()
     {
-        var created = await CreateDefaultMusician();
+        var created = await _fixture.CreateDefaultMusician();
 
         var updateDto = new UpdateMusicianDto(
             Username: "UpdatedUsername",
@@ -175,7 +185,7 @@ public sealed class MusicianServiceTests : IClassFixture<TestDatabaseFixture>
     [Fact]
     public async Task UpdateMusician_ShouldThrow_WhenForbidden()
     {
-        var created = await CreateDefaultMusician();
+        var created = await _fixture.CreateDefaultMusician();
         var otherUserId = Guid.NewGuid();
 
         var updateDto = new UpdateMusicianDto(
@@ -195,7 +205,7 @@ public sealed class MusicianServiceTests : IClassFixture<TestDatabaseFixture>
     [Fact]
     public async Task UpdateMusician_ShouldNotUpdateNull_Fields()
     {
-        var created = await CreateDefaultMusician(username: "OriginalName");
+        var created = await _fixture.CreateDefaultMusician(username: "OriginalName");
 
         var updateDto = new UpdateMusicianDto(
             Username: null,
@@ -217,7 +227,7 @@ public sealed class MusicianServiceTests : IClassFixture<TestDatabaseFixture>
     [Fact]
     public async Task DeleteMusician_ShouldRemoveMusician()
     {
-        var created = await CreateDefaultMusician();
+        var created = await _fixture.CreateDefaultMusician();
 
         await _musicianService.DeleteMusicianAsync(created.Id, CancellationToken.None);
 

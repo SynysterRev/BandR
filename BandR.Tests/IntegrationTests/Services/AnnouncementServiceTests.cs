@@ -6,21 +6,45 @@ using BandR.Exceptions;
 using BandR.Services;
 using BandR.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using Respawn;
 
 namespace BandR.Tests.IntegrationTests.Services;
 
-public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture>
+public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture>, IAsyncLifetime
 {
+    private readonly TestDatabaseFixture _fixture;
     private readonly IAnnouncementService _announcementService;
-    private readonly Guid _musicianId;
     private readonly ApplicationDbContext _dbContext;
 
     public AnnouncementServiceTests(TestDatabaseFixture fixture)
     {
+        _fixture = fixture;
         _dbContext = fixture.DbContext;
         _announcementService = new AnnouncementService(_dbContext);
-        _musicianId = fixture.MusicianId;
     }
+
+    public async Task InitializeAsync()
+    {
+        using var connection = new NpgsqlConnection(_fixture.ConnectionString);
+        await connection.OpenAsync();
+
+        var respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
+        {
+            DbAdapter = DbAdapter.Postgres,
+            TablesToIgnore = new Respawn.Graph.Table[] { "__EFMigrationsHistory" }
+        });
+
+        await respawner.ResetAsync(connection);
+
+        _dbContext.ChangeTracker.Clear();
+
+        await _fixture.SeedDefaultDataAsync();
+
+        // _appUserId = _fixture.AppUserId;
+    }
+
+    public Task DisposeAsync() => Task.CompletedTask;
     // ---- Helpers ----
 
     private async Task<AnnouncementDto> CreateDefaultAnnouncement(
@@ -28,6 +52,8 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
         string city = "London",
         Guid? musicianId = null)
     {
+        var targetMusicianId = musicianId ?? (await _fixture.CreateDefaultMusician(customUserId: Guid.NewGuid())).Id;
+
         var dto = new CreateAnnouncementDto(
             Title: title,
             Description: "For an alternative rock band",
@@ -38,7 +64,7 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
             TagIds: []
         );
 
-        return await _announcementService.CreateAnnouncementAsync(dto, musicianId ?? _musicianId, CancellationToken.None);
+        return await _announcementService.CreateAnnouncementAsync(dto, targetMusicianId, CancellationToken.None);
     }
 
     // ---- CreateAnnouncement ----
@@ -93,7 +119,7 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
     public async Task GetAnnouncements_ShouldReturnOnlyActiveAnnouncements()
     {
         await CreateDefaultAnnouncement(title: "Active 1");
-        
+
         var inactive = await CreateDefaultAnnouncement(title: "Inactive 1");
         var entity = await _dbContext.Announcements.FindAsync(inactive.Id);
         entity!.IsActive = false;
@@ -112,7 +138,7 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
     public async Task GetAnnouncementsForMusician_ShouldReturnOnlyMusicianAnnouncements()
     {
         var existingLocation = await _dbContext.Locations.FirstAsync();
-    
+
         var otherMusicianId = Guid.NewGuid();
         var otherUser = new ApplicationUser
         {
@@ -124,21 +150,23 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
         await _dbContext.Users.AddAsync(otherUser);
         await _dbContext.SaveChangesAsync();
 
-        await _dbContext.Musicians.AddAsync(new Musician 
-        { 
-            Id = otherMusicianId, 
+        var musician = await _dbContext.Musicians.AddAsync(new Musician
+        {
+            Id = otherMusicianId,
             AppUserId = otherMusicianId,
             LocationId = existingLocation.Id,
-            Username = "Other", 
-            CreatedAt = DateTime.UtcNow 
+            Username = "Other",
+            CreatedAt = DateTime.UtcNow
         });
         await _dbContext.SaveChangesAsync();
 
-        await CreateDefaultAnnouncement(title: "My great announcement", musicianId: _musicianId);
+        await CreateDefaultAnnouncement(title: "My great announcement", musicianId: musician.Entity.Id);
         await CreateDefaultAnnouncement(title: "Someone else's announcement", musicianId: otherMusicianId);
 
-        var filter = new AnnouncementQueryFilter { PageNumber = 1, PageSize = 10 };
-        var result = await _announcementService.GetAnnouncementsForMusicianAsync(_musicianId, filter, CancellationToken.None);
+        var filter = new AnnouncementQueryFilter { PageNumber = 1, PageSize = 1 };
+        var result =
+            await _announcementService.GetAnnouncementsForMusicianAsync(musician.Entity.Id, filter,
+                CancellationToken.None);
 
         Assert.Single(result.Data);
         Assert.Equal("My great announcement", result.Data.First().Title);
@@ -149,7 +177,9 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
     [Fact]
     public async Task UpdateAnnouncement_ShouldUpdateFields()
     {
-        var created = await CreateDefaultAnnouncement();
+        var musician = await _fixture.CreateDefaultMusician();
+
+        var created = await CreateDefaultAnnouncement(musicianId: musician.Id);
 
         var updateDto = new UpdateAnnouncementDto(
             Title: "Updated Title",
@@ -162,7 +192,9 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
             TagIds: null
         );
 
-        var result = await _announcementService.UpdateAnnouncementAsync(created.Id, _musicianId, updateDto, CancellationToken.None);
+        var result =
+            await _announcementService.UpdateAnnouncementAsync(created.Id, musician.Id, updateDto,
+                CancellationToken.None);
 
         Assert.Equal("Updated Title", result.Title);
         Assert.Equal("New description", result.Description);
@@ -177,7 +209,8 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
         var fakeMusicianId = Guid.NewGuid();
 
         var updateDto = new UpdateAnnouncementDto(
-            Title: "Hacked", Description: null, Type: null, IsActive: null, City: null, InstrumentIds: null, StyleIds: null, TagIds: null
+            Title: "Hacked", Description: null, Type: null, IsActive: null, City: null, InstrumentIds: null,
+            StyleIds: null, TagIds: null
         );
 
         await Assert.ThrowsAsync<AnnouncementException.AnnouncementForbiddenException>(() =>
@@ -188,12 +221,14 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
     [Fact]
     public async Task UpdateAnnouncement_ShouldThrow_WhenNotFound()
     {
+        var musician = await _fixture.CreateDefaultMusician();
         var updateDto = new UpdateAnnouncementDto(
-            Title: "Oops", Description: null, Type: null, IsActive: null, City: null, InstrumentIds: null, StyleIds: null, TagIds: null
+            Title: "Oops", Description: null, Type: null, IsActive: null, City: null, InstrumentIds: null,
+            StyleIds: null, TagIds: null
         );
 
         await Assert.ThrowsAsync<AnnouncementException.AnnouncementNotFoundException>(() =>
-            _announcementService.UpdateAnnouncementAsync(Guid.NewGuid(), _musicianId, updateDto, CancellationToken.None)
+            _announcementService.UpdateAnnouncementAsync(Guid.NewGuid(), musician.Id, updateDto, CancellationToken.None)
         );
     }
 
@@ -202,9 +237,10 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
     [Fact]
     public async Task DeleteAnnouncement_ShouldRemoveFromDatabase()
     {
-        var created = await CreateDefaultAnnouncement();
+        var musician = await _fixture.CreateDefaultMusician();
+        var created = await CreateDefaultAnnouncement(musicianId: musician.Id);
 
-        await _announcementService.DeleteAnnouncementAsync(created.Id, _musicianId, CancellationToken.None);
+        await _announcementService.DeleteAnnouncementAsync(created.Id, musician.Id, CancellationToken.None);
 
         var exists = await _dbContext.Announcements.AnyAsync(a => a.Id == created.Id);
         Assert.False(exists);
@@ -224,8 +260,10 @@ public sealed class AnnouncementServiceTests : IClassFixture<TestDatabaseFixture
     [Fact]
     public async Task DeleteAnnouncement_ShouldThrow_WhenNotFound()
     {
+        var musician = await _fixture.CreateDefaultMusician();
+        
         await Assert.ThrowsAsync<AnnouncementException.AnnouncementNotFoundException>(() =>
-            _announcementService.DeleteAnnouncementAsync(Guid.NewGuid(), _musicianId, CancellationToken.None)
+            _announcementService.DeleteAnnouncementAsync(Guid.NewGuid(), musician.Id, CancellationToken.None)
         );
     }
 }
