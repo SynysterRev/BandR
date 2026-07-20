@@ -14,33 +14,44 @@ public class AccountService(
 {
     public async Task DeactivateAccountAsync(Guid appUserId, CancellationToken ct)
     {
-        var user = await userManager.FindByIdAsync(appUserId.ToString())
-                   ?? throw new AccountNotFoundException(appUserId);
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(ct);
 
-        if (user.DeactivatedAt is not null)
-            return;
+        try
+        {
+            var user = await userManager.FindByIdAsync(appUserId.ToString())
+                       ?? throw new AccountNotFoundException(appUserId);
 
-        user.DeactivatedAt = DateTime.UtcNow;
-        var result = await userManager.UpdateAsync(user);
-        if (!result.Succeeded)
-            throw new InvalidOperationException("Unable to deactivate the account.");
+            if (user.DeactivatedAt is not null)
+                return;
 
-        var announcements = await dbContext.Announcements
-            .Where(announcement => announcement.Musician.AppUserId == appUserId && announcement.IsActive)
-            .ToListAsync(ct);
-        foreach (var announcement in announcements)
-            announcement.IsActive = false;
+            user.DeactivatedAt = DateTime.UtcNow;
+            var result = await userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+                throw new InvalidOperationException("Unable to deactivate the account.");
 
-        var conversations = await dbContext.Conversations
-            .Where(conversation => conversation.IsActive)
-            .Where(conversation => conversation.MusicianConversations
-                .Any(participant => participant.Musician.AppUserId == appUserId))
-            .ToListAsync(ct);
-        foreach (var conversation in conversations)
-            conversation.IsActive = false;
+            var announcements = await dbContext.Announcements
+                .Where(announcement => announcement.Musician.AppUserId == appUserId && announcement.IsActive)
+                .ToListAsync(ct);
+            foreach (var announcement in announcements)
+                announcement.IsActive = false;
 
-        await dbContext.SaveChangesAsync(ct);
+            var conversations = await dbContext.Conversations
+                .Where(conversation => conversation.IsActive)
+                .Where(conversation => conversation.MusicianConversations
+                    .Any(participant => participant.Musician.AppUserId == appUserId))
+                .ToListAsync(ct);
+            foreach (var conversation in conversations)
+                conversation.IsActive = false;
 
-        await tokenService.RemoveTokensForUserAsync(appUserId, ct);
+            await dbContext.SaveChangesAsync(ct);
+            await tokenService.RemoveTokensForUserAsync(appUserId, ct);
+
+            await transaction.CommitAsync(ct);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
     }
 }
