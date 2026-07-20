@@ -86,10 +86,17 @@ public class ConversationService(ApplicationDbContext dbContext) : IConversation
         CancellationToken cancellationToken)
     {
         var conversation =
-            await dbContext.Conversations.FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken);
+            await dbContext.Conversations
+                .Include(c => c.MusicianConversations)
+                .FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken);
         if (conversation is null)
         {
             throw new ConversationException.ConversationNotFoundException(conversationId);
+        }
+
+        if (conversation.MusicianConversations.All(mc => mc.MusicianId != musicianId))
+        {
+            throw new ConversationException.ConversationForbiddenException(conversationId);
         }
 
         var createdMessage = new Message

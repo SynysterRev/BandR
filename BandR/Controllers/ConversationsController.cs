@@ -2,12 +2,14 @@
 using BandR.DTOs.Messages;
 using BandR.Extensions;
 using BandR.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BandR.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ConversationsController(IConversationService conversationService, IMusicianService musicianService) : ControllerBase
 {
     // GET
