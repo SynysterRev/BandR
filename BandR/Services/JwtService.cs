@@ -64,7 +64,7 @@ public class JwtService(
             return;
         }
 
-        await tokenService.RemoveTokenAsync(incomingBytes, cancellationToken);
+        await tokenService.RemoveTokenAsync(HashToken(incomingBytes), cancellationToken);
     }
 
     private async Task<AuthTokenResult> CreateFullAuthTokenAsync(ApplicationUser user, CancellationToken ct)

@@ -35,7 +35,7 @@ public class TokenService(ApplicationDbContext dbContext) : ITokenService
         var token = await dbContext.RefreshTokens.SingleOrDefaultAsync(t => t.TokenHash == hashString, ct);
         if (token == null)
         {
-            throw new InvalidOperationException("Token not found");
+            return;
         }
 
         dbContext.RefreshTokens.Remove(token);
