@@ -20,7 +20,7 @@ Les dossiers principaux sont :
 - `BandR/Entities/` et `BandR/Entities/Joints/` : entités EF et tables de jonction explicites.
 - `BandR/EntitiesConfiguration/` : configurations EF Core et données de référence.
 - `BandR/DTOs/` : contrats API immuables (`record`), organisés par domaine.
-- `BandR/Validators/` : validateurs FluentValidation des DTO de mutation.
+- `BandR/Validators/` : validateurs FluentValidation des DTO de mutation, appliqués globalement par `Filters/FluentValidationFilter.cs`.
 - `BandR/Extensions/` : mappings DTO/entités, extensions de requêtes, claims et inscription DI.
 - `BandR/Exceptions/` : exceptions métier convertibles en `ProblemDetails`.
 - `BandR/Middleware/` : conversion globale des exceptions métier en réponses `application/problem+json`.
@@ -81,7 +81,7 @@ Les tests d'intégration nécessitent Docker. La CI utilise `dotnet restore`, `d
 - Ne pas modifier manuellement les fichiers EF générés dans `Migrations/`, notamment `*.Designer.cs` et `ApplicationDbContextModelSnapshot.cs`. Créer une migration après une évolution de modèle.
 - Ne pas modifier les données seed (`Seeds/`) sans vérifier les index uniques sur les noms et sans migration associée.
 - Ne pas retirer ou changer les versions des dépendances Identity, EF Core, Npgsql, JWT, FluentValidation, Testcontainers ou Respawn sans raison explicite et vérification de build/tests : elles structurent l'authentification, le modèle et les tests.
-- Ne pas supposer que les validateurs sont exécutés automatiquement : ils sont inscrits dans le conteneur DI, mais aucun appel explicite à `Validate` ni intégration MVC FluentValidation n'apparaît dans les contrôleurs ou `Program.cs`.
+- Ne pas contourner `FluentValidationFilter` en validant les DTO manuellement dans les contrôleurs. Ajouter ou modifier le validateur adapté dans `Validators/` ; le filtre global l'exécutera avant l'action.
 
 ## Points d'attention constatés
 
