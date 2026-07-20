@@ -54,7 +54,7 @@ public class MusiciansController(
         [FromQuery] AnnouncementQueryFilter filter,
         CancellationToken ct)
     {
-        var appUserId = User.GetUserId();
-        return Ok(await announcementService.GetAnnouncementsForMusicianAsync(appUserId, filter, ct));
+        var musician = await musicianService.GetMusicianByUserIdAsync(User.GetUserId(), ct);
+        return Ok(await announcementService.GetAnnouncementsForMusicianAsync(musician.Id, filter, ct));
     }
 }

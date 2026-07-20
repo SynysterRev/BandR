@@ -86,6 +86,6 @@ Les tests d'intégration nécessitent Docker. La CI utilise `dotnet restore`, `d
 ## Points d'attention constatés
 
 - Le README ne reflète pas entièrement le code : il annonce la messagerie « in progress », mais contrôleur et service de conversations existent ; il liste des suppressions/profils qui ne correspondent pas toutes aux actions présentes dans les contrôleurs. Traiter les contrôleurs et tests comme référence d'implémentation.
-- `MusiciansController` ne publie pas d'action `PUT`/`DELETE`, tandis que les méthodes correspondantes existent dans `IMusicianService`/`MusicianService`. Le même décalage existe pour `UpdateAnnouncementAsync`, sans action HTTP `PUT`/`PATCH` dans `AnnouncementsController`.
+- `MusiciansController` ne publie pas d'action `PUT`/`PATCH` ni `DELETE`, alors que les méthodes correspondantes existent dans `IMusicianService`/`MusicianService`.
 - Les exceptions `AnnouncementException` internes héritent de `MusicianException` plutôt que de `AnnouncementException`, bien qu'elles soient déclarées dans cette dernière. Ne pas restructurer cette hiérarchie sans mesurer l'impact sur les captures d'exceptions et les tests.
 - Les configurations `InstrumentConfiguration`, `StyleConfiguration` et `TagConfiguration` importent le namespace `Bandix.Infrastructure.Persistence.Seeds`, différent du nom de projet `BandR`; préserver ou corriger cette dépendance uniquement avec build/migration de contrôle.

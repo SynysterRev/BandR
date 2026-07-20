@@ -35,6 +35,17 @@ public class AnnouncementsController(IAnnouncementService announcementService, I
         return CreatedAtAction(nameof(GetAnnouncementById), new { id = announcement.Id }, announcement);
     }
 
+    [HttpPatch("{id}")]
+    [Authorize]
+    public async Task<ActionResult<AnnouncementDto>> UpdateAnnouncement(
+        [FromRoute] Guid id,
+        [FromBody] UpdateAnnouncementDto dto,
+        CancellationToken ct)
+    {
+        var musician = await musicianService.GetMusicianByUserIdAsync(User.GetUserId(), ct);
+        return Ok(await announcementService.UpdateAnnouncementAsync(id, musician.Id, dto, ct));
+    }
+
     [HttpDelete("{id}")]
     [Authorize]
     public async Task<ActionResult> DisableAnnouncementById([FromRoute] Guid id, CancellationToken ct)

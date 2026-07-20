@@ -16,6 +16,7 @@ public class AnnouncementService(ApplicationDbContext dbContext) : IAnnouncement
     {
         var announcement = await dbContext.Announcements
             .Include(a => a.Location)
+            .Include(a => a.Musician)
             .Include(a => a.AnnouncementInstruments).ThenInclude(ai => ai.Instrument)
             .Include(a => a.Styles)
             .Include(a => a.Tags)
