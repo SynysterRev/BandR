@@ -17,6 +17,16 @@ public abstract class MusicianException(string? message = null, Exception? inner
         }
     }
 
+    public sealed class MusicianProfileNotFoundForUserException(Guid appUserId, Exception? innerException = null)
+        : MusicianException($"No musician profile is associated with user id {appUserId}", innerException)
+    {
+        public override void ToProblemDetails(in ProblemDetails inProblemDetails)
+        {
+            inProblemDetails.Type = "Musician/Profile/NotFound";
+            inProblemDetails.Status = StatusCodes.Status404NotFound;
+        }
+    }
+
     public sealed class MusicianForbiddenException(Guid id, Exception? innerException = null)
         : MusicianException($"Access to musician {id} is forbidden", innerException)
     {

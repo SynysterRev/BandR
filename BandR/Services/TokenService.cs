@@ -41,4 +41,14 @@ public class TokenService(ApplicationDbContext dbContext) : ITokenService
         dbContext.RefreshTokens.Remove(token);
         await dbContext.SaveChangesAsync(ct);
     }
+
+    public async Task RemoveTokensForUserAsync(Guid appUserId, CancellationToken ct)
+    {
+        var tokens = await dbContext.RefreshTokens
+            .Where(token => token.AppUserId == appUserId)
+            .ToListAsync(ct);
+
+        dbContext.RefreshTokens.RemoveRange(tokens);
+        await dbContext.SaveChangesAsync(ct);
+    }
 }

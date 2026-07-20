@@ -21,7 +21,7 @@ public class AnnouncementService(ApplicationDbContext dbContext) : IAnnouncement
             .Include(a => a.Styles)
             .Include(a => a.Tags)
             .AsSplitQuery()
-            .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(a => a.Id == id && a.IsActive, cancellationToken);
         if (announcement is null)
         {
             throw new AnnouncementException.AnnouncementNotFoundException(id);

@@ -38,6 +38,17 @@ public class MusiciansController(
         return CreatedAtAction(nameof(GetMusician), new { id = musician.Id }, musician);
     }
 
+    [HttpPatch("me")]
+    [Authorize]
+    public async Task<ActionResult<MusicianDto>> UpdateMusician(
+        [FromBody] UpdateMusicianDto dto,
+        CancellationToken ct)
+    {
+        var userId = User.GetUserId();
+        var musician = await musicianService.GetMusicianByUserIdAsync(userId, ct);
+        return Ok(await musicianService.UpdateMusicianAsync(musician.Id, dto, userId, ct));
+    }
+
     [HttpGet("{id}/announcements")]
     [Authorize]
     public async Task<ActionResult<PagedResponse<AnnouncementListDto>>> GetAnnouncementsForMusician(

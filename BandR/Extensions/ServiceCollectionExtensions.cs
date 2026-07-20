@@ -63,6 +63,22 @@ public static class ServiceCollectionExtensions
                         context.Response.StatusCode = 403;
                         context.Response.ContentType = "application/problem+json";
                         await context.Response.WriteAsJsonAsync(problem);
+                    },
+                    OnTokenValidated = async context =>
+                    {
+                        var userManager = context.HttpContext.RequestServices
+                            .GetRequiredService<UserManager<ApplicationUser>>();
+                        var userId = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+                        if (!Guid.TryParse(userId, out var id))
+                        {
+                            context.Fail("Invalid user identifier.");
+                            return;
+                        }
+
+                        var user = await userManager.FindByIdAsync(id.ToString());
+                        if (user is null || user.DeactivatedAt is not null)
+                            context.Fail("Account is deactivated.");
                     }
                 };
                 options.TokenValidationParameters = new TokenValidationParameters()
@@ -85,6 +101,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IAnnouncementService, AnnouncementService>();
         services.AddScoped<IConversationService, ConversationService>();
+        services.AddScoped<IAccountService, AccountService>();
         return services;
     }
 

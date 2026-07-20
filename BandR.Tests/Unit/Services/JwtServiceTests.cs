@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using BandR.Configuration;
 using BandR.Services;
 using BandR.Services.Interfaces;
+using FluentAssertions;
 using Microsoft.Extensions.Options;
 using Moq;
 
@@ -38,6 +39,28 @@ public class JwtServiceTests
         tokenService.Verify(
             service => service.RemoveTokenAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_ShouldRejectToken_WhenAccountIsDeactivated()
+    {
+        var tokenBytes = new byte[] { 1, 2, 3, 4 };
+        var refreshToken = Convert.ToBase64String(tokenBytes);
+        var tokenService = new Mock<ITokenService>();
+        tokenService
+            .Setup(service => service.GetTokenAsync(It.IsAny<byte[]>(), CancellationToken.None))
+            .ReturnsAsync(new BandR.Entities.RefreshToken
+            {
+                ExpiresAt = DateTime.UtcNow.AddDays(1),
+                AppUser = new BandR.Entities.ApplicationUser { DeactivatedAt = DateTime.UtcNow }
+            });
+        var jwtService = CreateJwtService(tokenService.Object);
+
+        var result = await jwtService.RefreshTokenAsync(refreshToken, CancellationToken.None);
+
+        result.Should().BeNull();
+        tokenService.Verify(service => service.CreateTokenAsync(
+            It.IsAny<Guid>(), It.IsAny<byte[]>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private static JwtService CreateJwtService(ITokenService tokenService)

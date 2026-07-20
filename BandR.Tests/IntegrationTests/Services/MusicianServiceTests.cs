@@ -222,25 +222,4 @@ public sealed class MusicianServiceTests : IClassFixture<TestDatabaseFixture>, I
         Assert.Equal("OriginalName", result.Username);
     }
 
-    // ---- DeleteMusician ----
-
-    [Fact]
-    public async Task DeleteMusician_ShouldRemoveMusician()
-    {
-        var created = await _fixture.CreateDefaultMusician();
-
-        await _musicianService.DeleteMusicianAsync(created.Id, CancellationToken.None);
-
-        await Assert.ThrowsAsync<MusicianException.MusicianNotFoundException>(() =>
-            _musicianService.GetMusicianByIdAsync(created.Id, CancellationToken.None)
-        );
-    }
-
-    [Fact]
-    public async Task DeleteMusician_ShouldThrow_WhenNotFound()
-    {
-        await Assert.ThrowsAsync<MusicianException.MusicianNotFoundException>(() =>
-            _musicianService.DeleteMusicianAsync(Guid.NewGuid(), CancellationToken.None)
-        );
-    }
 }

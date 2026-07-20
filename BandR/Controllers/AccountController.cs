@@ -1,5 +1,6 @@
 using BandR.DTOs.Account;
 using BandR.Entities;
+using BandR.Extensions;
 using BandR.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -11,8 +12,8 @@ namespace BandR.Controllers;
 [Route("api/[controller]")]
 public class AccountController(
     UserManager<ApplicationUser> userManager,
-    RoleManager<ApplicationRole> roleManager,
-    IJwtService jwtService
+    IJwtService jwtService,
+    IAccountService accountService
 ) : Controller
 {
     [AllowAnonymous]
@@ -51,7 +52,7 @@ public class AccountController(
     {
         ApplicationUser? user = await userManager.FindByEmailAsync(loginDto.Email);
 
-        if (user == null || !await userManager.CheckPasswordAsync(user, loginDto.Password))
+        if (user is null || user.DeactivatedAt is not null || !await userManager.CheckPasswordAsync(user, loginDto.Password))
         {
             return Unauthorized("Invalid email or password");
         }
@@ -77,6 +78,14 @@ public class AccountController(
     public async Task<IActionResult> Logout(RefreshTokenDto dto, CancellationToken ct)
     {
         await jwtService.RevokeTokenAsync(dto.RefreshToken, ct);
+        return NoContent();
+    }
+
+    [Authorize]
+    [HttpDelete("me")]
+    public async Task<IActionResult> DeactivateMyAccount(CancellationToken ct)
+    {
+        await accountService.DeactivateAccountAsync(User.GetUserId(), ct);
         return NoContent();
     }
     

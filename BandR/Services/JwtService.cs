@@ -44,7 +44,7 @@ public class JwtService(
         }
 
         await tokenService.RemoveTokenAsync(incomingHash, cancellationToken);
-        if (token.ExpiresAt <= DateTimeOffset.UtcNow)
+        if (token.ExpiresAt <= DateTimeOffset.UtcNow || token.AppUser.DeactivatedAt is not null)
         {
             return null;
         }

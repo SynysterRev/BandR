@@ -15,6 +15,19 @@ public class ConversationService(ApplicationDbContext dbContext) : IConversation
     public async Task<ConversationDto> CreateConversation(Guid musicianId, CreateConversationDto conversationDto,
         CancellationToken cancellationToken)
     {
+        var otherMusician = await dbContext.Musicians
+            .Include(m => m.AppUser)
+            .FirstOrDefaultAsync(m => m.Id == conversationDto.OtherMusicianId, cancellationToken);
+        if (otherMusician is null)
+        {
+            throw new MusicianException.MusicianNotFoundException(conversationDto.OtherMusicianId);
+        }
+
+        if (otherMusician.AppUser.DeactivatedAt is not null)
+        {
+            throw new ConversationException.ParticipantUnavailableException(otherMusician.Id);
+        }
+
         if (conversationDto.AnnouncementId is not null)
         {
             var announcement =
@@ -26,6 +39,8 @@ public class ConversationService(ApplicationDbContext dbContext) : IConversation
             }
 
             var foundConv = await dbContext.Conversations
+                .Include(c => c.Messages)
+                .ThenInclude(message => message.Sender)
                 .Where(c => c.AnnouncementId == announcement.Id)
                 .Where(c => c.MusicianConversations.Any(mc => mc.MusicianId == musicianId) &&
                             c.MusicianConversations.Any(mc => mc.MusicianId == conversationDto.OtherMusicianId))
@@ -38,6 +53,8 @@ public class ConversationService(ApplicationDbContext dbContext) : IConversation
         else
         {
             var foundConv = await dbContext.Conversations
+                .Include(c => c.Messages)
+                .ThenInclude(message => message.Sender)
                 .Where(c => c.MusicianConversations.Any(mc => mc.MusicianId == musicianId) &&
                             c.MusicianConversations.Any(mc => mc.MusicianId == conversationDto.OtherMusicianId))
                 .FirstOrDefaultAsync(cancellationToken);
@@ -45,14 +62,6 @@ public class ConversationService(ApplicationDbContext dbContext) : IConversation
             {
                 return foundConv.ToDto();
             }
-        }
-
-        var otherMusician =
-            await dbContext.Musicians.FirstOrDefaultAsync(m => m.Id == conversationDto.OtherMusicianId,
-                cancellationToken);
-        if (otherMusician is null)
-        {
-            throw new MusicianException.MusicianNotFoundException(conversationDto.OtherMusicianId);
         }
 
         Conversation conversation = new Conversation
@@ -78,8 +87,7 @@ public class ConversationService(ApplicationDbContext dbContext) : IConversation
         conversation.MusicianConversations.Add(otherMusicianConv);
         dbContext.Conversations.Add(conversation);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return new ConversationDto(conversation.Id, conversation.Messages.Select(m => m.ToDto()).ToList(),
-            conversationDto.AnnouncementId);
+        return conversation.ToDto();
     }
 
     public async Task<MessageDto> SendMessage(Guid musicianId, Guid conversationId, CreateMessageDto message,
@@ -97,6 +105,11 @@ public class ConversationService(ApplicationDbContext dbContext) : IConversation
         if (conversation.MusicianConversations.All(mc => mc.MusicianId != musicianId))
         {
             throw new ConversationException.ConversationForbiddenException(conversationId);
+        }
+
+        if (!conversation.IsActive)
+        {
+            throw new ConversationException.ConversationUnavailableException(conversationId);
         }
 
         var createdMessage = new Message

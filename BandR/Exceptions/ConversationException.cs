@@ -36,4 +36,24 @@ public abstract class ConversationException(string? message = null, Exception? i
             inProblemDetails.Status = StatusCodes.Status409Conflict;
         }
     }
+
+    public sealed class ConversationUnavailableException(Guid id, Exception? innerException = null)
+        : ConversationException($"Conversation {id} is unavailable because a participant deactivated their account", innerException)
+    {
+        public override void ToProblemDetails(in ProblemDetails inProblemDetails)
+        {
+            inProblemDetails.Type = "Conversation/Unavailable";
+            inProblemDetails.Status = StatusCodes.Status409Conflict;
+        }
+    }
+
+    public sealed class ParticipantUnavailableException(Guid musicianId, Exception? innerException = null)
+        : ConversationException($"Musician {musicianId} is unavailable because their account is deactivated", innerException)
+    {
+        public override void ToProblemDetails(in ProblemDetails inProblemDetails)
+        {
+            inProblemDetails.Type = "Conversation/ParticipantUnavailable";
+            inProblemDetails.Status = StatusCodes.Status409Conflict;
+        }
+    }
 }

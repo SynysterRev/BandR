@@ -5,5 +5,6 @@ namespace BandR.DTOs.Conversation;
 public record ConversationDto(
     Guid Id,
     List<MessageDto> Messages,
-    Guid? AnnouncementId
+    Guid? AnnouncementId,
+    bool IsActive
 );

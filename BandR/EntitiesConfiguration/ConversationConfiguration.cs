@@ -12,6 +12,9 @@ public class ConversationConfiguration : IEntityTypeConfiguration<Conversation>
         
         builder.HasKey(c => c.Id);
 
+        builder.Property(c => c.IsActive)
+            .HasDefaultValue(true);
+
         builder.HasOne(c => c.Announcement)
             .WithMany()
             .HasForeignKey(c => c.AnnouncementId)

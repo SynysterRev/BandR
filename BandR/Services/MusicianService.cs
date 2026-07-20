@@ -130,18 +130,6 @@ public class MusicianService(ApplicationDbContext dbContext) : IMusicianService
         return musician.ToDto();
     }
 
-    public async Task DeleteMusicianAsync(Guid id, CancellationToken ct)
-    {
-        var foundMusician = await dbContext.Musicians.FindAsync([id], cancellationToken: ct);
-        if (foundMusician == null)
-        {
-            throw new MusicianException.MusicianNotFoundException(id);
-        }
-
-        dbContext.Musicians.Remove(foundMusician);
-        await dbContext.SaveChangesAsync(ct);
-    }
-
     public async Task<MusicianDto> GetMusicianByIdAsync(Guid id, CancellationToken ct)
     {
         var foundMusician = await dbContext.Musicians
@@ -170,7 +158,7 @@ public class MusicianService(ApplicationDbContext dbContext) : IMusicianService
             .FirstOrDefaultAsync(m => m.AppUserId == appUserId, ct);
         if (foundMusician == null)
         {
-            throw new MusicianException.MusicianNotFoundException(appUserId);
+            throw new MusicianException.MusicianProfileNotFoundForUserException(appUserId);
         }
 
         return foundMusician.ToDto();
