@@ -8,7 +8,7 @@ public abstract class AnnouncementException(string? message = null, Exception? i
 public abstract void ToProblemDetails(in ProblemDetails inProblemDetails);
 
 public sealed class AnnouncementNotFoundException(Guid id, Exception? innerException = null)
-    : MusicianException($"Announcement with id {id} not found", innerException)
+    : AnnouncementException($"Announcement with id {id} not found", innerException)
 {
     public override void ToProblemDetails(in ProblemDetails inProblemDetails)
     {
@@ -18,7 +18,7 @@ public sealed class AnnouncementNotFoundException(Guid id, Exception? innerExcep
 }
 
 public sealed class AnnouncementForbiddenException(Guid id, Exception? innerException = null)
-    : MusicianException($"Access to Announcement {id} is forbidden", innerException)
+    : AnnouncementException($"Access to Announcement {id} is forbidden", innerException)
 {
     public override void ToProblemDetails(in ProblemDetails inProblemDetails)
     {

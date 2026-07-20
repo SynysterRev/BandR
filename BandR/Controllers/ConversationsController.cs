@@ -12,7 +12,13 @@ namespace BandR.Controllers;
 [Authorize]
 public class ConversationsController(IConversationService conversationService, IMusicianService musicianService) : ControllerBase
 {
-    // GET
+    [HttpGet]
+    public async Task<ActionResult<List<ConversationListDto>>> GetConversations(CancellationToken cancellationToken)
+    {
+        var musician = await musicianService.GetMusicianByUserIdAsync(User.GetUserId(), cancellationToken);
+        return Ok(await conversationService.GetConversationsAsync(musician.Id, cancellationToken));
+    }
+
     [HttpGet("{conversationId}")]
     public async Task<ActionResult<ConversationDto>> GetConversation([FromRoute] Guid conversationId, CancellationToken cancellationToken)
     {

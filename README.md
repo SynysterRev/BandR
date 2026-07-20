@@ -1,157 +1,82 @@
-# BandR 🎸
+# BandR
 
-**BandR** is a REST API for connecting musicians. Post announcements, find bandmates, and message other musicians, all in one place.
+API REST permettant à des musiciens de créer un profil, publier des annonces et échanger par messagerie.
 
-> ⚠️ This project is actively under development. Frontend coming soon.
+## Stack
 
----
+- .NET 10 / ASP.NET Core Controllers
+- Entity Framework Core 10 / PostgreSQL 16
+- ASP.NET Identity avec JWT Bearer et refresh tokens hashés
+- FluentValidation, OpenAPI et Scalar
+- xUnit, Testcontainers PostgreSQL et Respawn
 
-## Features
+## Lancer le projet
 
-- **Authentication**: JWT-based auth with access & refresh tokens
-- **Musician profiles**: username, bio, location, instruments, styles, tags
-- **Announcements**: post and browse ads with filtering and pagination
-- **Messaging**: start conversations directly from an announcement *(in progress)*
-- **Reference data**: curated list of instruments, music styles and tags
+Prérequis : .NET 10 SDK et Docker Desktop.
 
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Runtime | .NET 10 |
-| Framework | ASP.NET Core 10 |
-| ORM | Entity Framework Core 10 |
-| Database | PostgreSQL 16 |
-| Auth | ASP.NET Identity + JWT Bearer |
-| Validation | FluentValidation |
-| API Docs | Scalar / OpenAPI |
-| Containerization | Docker + Docker Compose |
-| CI/CD | GitHub Actions |
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop)
-
-### Run locally
-
-**1. Clone the repo**
-```bash
-git clone https://github.com/SynysterRev/BandR.git
-cd BandR
-```
-
-**2. Start the database**
 ```bash
 docker compose up -d
-```
-
-**3. Apply migrations**
-```bash
 dotnet ef database update
-```
-
-**4. Run the API**
-```bash
 dotnet run --project BandR
 ```
 
-**5. Open the API docs**
+En environnement Development, Scalar est disponible sur `https://localhost:7294/scalar/v1`.
 
-Navigate to `https://localhost:7294/scalar/v1`
+## Endpoints principaux
 
----
+Toutes les routes sauf `register`, `login` et la vérification d'email nécessitent un Bearer token.
 
-## API Overview
+### Account
 
-### Auth
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| POST | `/api/account/register` | Register | ❌ |
-| POST | `/api/account/login` | Login | ❌ |
-| POST | `/api/account/refresh` | Refresh access token | ❌ |
-| POST | `/api/account/logout` | Revoke refresh token | ✅ |
+| Méthode | Endpoint | Description |
+|---|---|---|
+| POST | `/api/account/register` | Crée un compte et retourne des tokens. |
+| POST | `/api/account/login` | Authentifie un compte actif. |
+| POST | `/api/account/refresh` | Renouvelle une paire de tokens. |
+| POST | `/api/account/logout` | Révoque un refresh token. |
+| DELETE | `/api/account/me` | Désactive le compte courant, ses annonces et ses conversations, sans supprimer l'historique. |
+| GET | `/api/account?email={email}` | Indique si une adresse email est déjà utilisée. |
 
 ### Musicians
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| GET | `/api/musicians` | List musicians | ✅ |
-| GET | `/api/musicians/{id}` | Get musician by ID | ✅ |
-| POST | `/api/musicians` | Create musician profile | ✅ |
-| DELETE | `/api/musicians/{id}` | Delete musician profile | ✅ |
-| GET | `/api/musicians/me/announcements` | Get my announcements | ✅ |
-| GET | `/api/musicians/{id}/announcements` | Get announcements by musician | ✅ |
+
+| Méthode | Endpoint | Description |
+|---|---|---|
+| GET | `/api/musicians` | Liste les profils. |
+| GET | `/api/musicians/{id}` | Retourne un profil. |
+| POST | `/api/musicians` | Crée le profil du compte courant. |
+| PATCH | `/api/musicians/me` | Modifie le profil du compte courant. |
+| GET | `/api/musicians/me/announcements` | Liste les annonces du profil courant. |
+| GET | `/api/musicians/{id}/announcements` | Liste les annonces d'un profil. |
 
 ### Announcements
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| GET | `/api/announcements` | List announcements (paginated) | ✅ |
-| GET | `/api/announcements/{id}` | Get announcement by ID | ✅ |
-| POST | `/api/announcements` | Create announcement | ✅ |
-| DELETE | `/api/announcements/{id}` | Delete announcement | ✅ |
 
----
+| Méthode | Endpoint | Description |
+|---|---|---|
+| GET | `/api/announcements` | Liste paginée et filtrable des annonces actives. |
+| GET | `/api/announcements/{id}` | Retourne une annonce active. |
+| POST | `/api/announcements` | Crée une annonce. |
+| PATCH | `/api/announcements/{id}` | Modifie une annonce appartenant au profil courant. |
+| DELETE | `/api/announcements/{id}` | Supprime une annonce appartenant au profil courant. |
 
-## Database Schema
+### Conversations
 
-**Core entities:** `ApplicationUser` · `Musician` · `Announcement` · `Location`
+| Méthode | Endpoint | Description |
+|---|---|---|
+| GET | `/api/conversations` | Liste les conversations du profil courant, actives ou inactives, avec le dernier message. |
+| GET | `/api/conversations/{conversationId}` | Retourne le détail d'une conversation accessible au profil courant. |
+| POST | `/api/conversations` | Crée ou retrouve une conversation avec un autre musicien. |
+| POST | `/api/conversations/{conversationId}` | Envoie un message dans une conversation active. |
 
-**Reference data:** `Instrument` · `Style` · `Tag`
+Une conversation devient inactive si l'un de ses participants désactive son compte. Son historique reste conservé mais l'envoi de message est refusé.
 
-**Junction tables:** `musician_instruments` · `musician_styles` · `musician_tags` · `announcement_instruments` · `announcement_styles` · `announcement_tags`
-
-**Auth:** `RefreshToken` + ASP.NET Identity tables
-
----
-
-## Roadmap
-
-### MVP
-- [x] Authentication (JWT + refresh tokens)
-- [x] Musician profiles
-- [x] Announcements with pagination
-- [ ] Search & filtering
-- [ ] Messaging
-- [ ] GitHub Actions CI
-- [ ] Azure deployment
-
----
-
-## Running Tests
+## Tests
 
 ```bash
 dotnet test
 ```
 
-> Integration tests use [Testcontainers](https://testcontainers.com/) and require Docker to be running.
+Les tests d'intégration nécessitent Docker : ils démarrent PostgreSQL avec Testcontainers.
 
----
+## Configuration locale
 
-## Environment Variables
-
-Configure in `appsettings.Development.json` :
-
-```json
-{
-  "ConnectionStrings": {
-    "Default": "Host=localhost;Database=bandr;Username=postgres;Password=postgres"
-  },
-  "Jwt": {
-    "SecretKey": "your-secret-key-min-32-chars",
-    "Issuer": "https://localhost:7294",
-    "Audience": "https://localhost:7294",
-    "ExpirationInMinutes": 60,
-    "RefreshExpiryDays": 7
-  }
-}
-```
-
----
-
-*Built with .NET 10 · PostgreSQL · Docker*
+La connexion est lue depuis `ConnectionStrings:Default` et JWT depuis la section `Jwt`. Utiliser les user secrets ou les variables d'environnement pour les secrets ; ne pas committer de clé JWT, mot de passe ou chaîne de connexion réelle.

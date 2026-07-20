@@ -12,6 +12,37 @@ namespace BandR.Services;
 
 public class ConversationService(ApplicationDbContext dbContext) : IConversationService
 {
+    public async Task<List<ConversationListDto>> GetConversationsAsync(Guid musicianId, CancellationToken cancellationToken)
+    {
+        return await dbContext.Conversations
+            .AsNoTracking()
+            .Where(conversation => conversation.MusicianConversations
+                .Any(participant => participant.MusicianId == musicianId))
+            .Select(conversation => new ConversationListDto(
+                conversation.Id,
+                conversation.AnnouncementId,
+                conversation.IsActive,
+                conversation.MusicianConversations
+                    .Where(participant => participant.MusicianId != musicianId)
+                    .Select(participant => participant.MusicianId)
+                    .First(),
+                conversation.MusicianConversations
+                    .Where(participant => participant.MusicianId != musicianId)
+                    .Select(participant => participant.Musician.Username)
+                    .First(),
+                conversation.Messages
+                    .OrderByDescending(message => message.SentAt)
+                    .Select(message => message.Content)
+                    .FirstOrDefault(),
+                conversation.Messages
+                    .OrderByDescending(message => message.SentAt)
+                    .Select(message => (DateTime?)message.SentAt)
+                    .FirstOrDefault()
+            ))
+            .OrderByDescending(conversation => conversation.LastMessageSentAt ?? DateTime.MinValue)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<ConversationDto> CreateConversation(Guid musicianId, CreateConversationDto conversationDto,
         CancellationToken cancellationToken)
     {
