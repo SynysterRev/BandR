@@ -43,6 +43,7 @@ Toutes les routes sauf `register`, `login` et la vérification d'email nécessit
 |---|---|---|
 | GET | `/api/musicians` | Liste les profils. |
 | GET | `/api/musicians/{id}` | Retourne un profil. |
+| GET | `/api/musicians/me` | Retourne le profil du compte courant. |
 | POST | `/api/musicians` | Crée le profil du compte courant. |
 | PATCH | `/api/musicians/me` | Modifie le profil du compte courant. |
 | GET | `/api/musicians/me/announcements` | Liste les annonces du profil courant. |

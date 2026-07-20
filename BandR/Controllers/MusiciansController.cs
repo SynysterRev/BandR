@@ -29,6 +29,13 @@ public class MusiciansController(
         return Ok(await musicianService.GetMusicianByIdAsync(id, ct));
     }
 
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<ActionResult<MusicianDto>> GetMyMusician(CancellationToken ct)
+    {
+        return Ok(await musicianService.GetMusicianByUserIdAsync(User.GetUserId(), ct));
+    }
+
     [HttpPost]
     [Authorize]
     public async Task<ActionResult> CreateMusician(CreateMusicianDto dto, CancellationToken ct)

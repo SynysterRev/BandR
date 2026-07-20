@@ -13,6 +13,23 @@ namespace BandR.Tests.Unit.Controllers;
 public class MusiciansControllerTests
 {
     [Fact]
+    public async Task GetMyMusician_ShouldUseTheCurrentUser()
+    {
+        var userId = Guid.NewGuid();
+        var musicianId = Guid.NewGuid();
+        var musicianService = new Mock<IMusicianService>();
+        musicianService
+            .Setup(service => service.GetMusicianByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MusicianDto(musicianId, "musician", "Montpellier", [], [], [], null, null));
+        var controller = CreateController(musicianService.Object, new Mock<IAnnouncementService>().Object, userId);
+
+        var result = await controller.GetMyMusician(CancellationToken.None);
+
+        result.Result.Should().BeOfType<OkObjectResult>();
+        musicianService.Verify(service => service.GetMusicianByUserIdAsync(userId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task UpdateMusician_ShouldUpdateUsingTheCurrentUser()
     {
         var userId = Guid.NewGuid();
