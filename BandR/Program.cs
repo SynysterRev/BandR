@@ -1,4 +1,5 @@
 using BandR.Extensions;
+using BandR.Middleware;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +17,8 @@ builder.Services.AddValidators();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseMiddleware<ProblemDetailsExceptionMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

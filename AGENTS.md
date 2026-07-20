@@ -22,7 +22,8 @@ Les dossiers principaux sont :
 - `BandR/DTOs/` : contrats API immuables (`record`), organisés par domaine.
 - `BandR/Validators/` : validateurs FluentValidation des DTO de mutation.
 - `BandR/Extensions/` : mappings DTO/entités, extensions de requêtes, claims et inscription DI.
-- `BandR/Exceptions/` : exceptions métier convertibles en `ProblemDetails` en théorie ; aucun middleware/filtre de conversion n'est enregistré dans `Program.cs`.
+- `BandR/Exceptions/` : exceptions métier convertibles en `ProblemDetails`.
+- `BandR/Middleware/` : conversion globale des exceptions métier en réponses `application/problem+json`.
 - `BandR/Seeds/` : jeux de données EF pour instruments, styles et tags.
 - `BandR/Migrations/` : migrations EF Core et snapshot du modèle.
 - `BandR.Tests/Unit/Validators/` : tests unitaires de validation.
@@ -68,7 +69,7 @@ Les tests d'intégration nécessitent Docker. La CI utilise `dotnet restore`, `d
 
 ## Erreurs, authentification et configuration
 
-- Les services signalent les ressources introuvables ou les accès interdits par les exceptions imbriquées `MusicianException`, `AnnouncementException` et `ConversationException`. Ces classes renseignent un `ProblemDetails`, mais l'application n'enregistre actuellement aucun middleware ou filtre qui les intercepte.
+- Les services signalent les ressources introuvables ou les accès interdits par les exceptions imbriquées `MusicianException`, `AnnouncementException` et `ConversationException`. Le middleware `ProblemDetailsExceptionMiddleware` les traduit en réponses `application/problem+json` et journalise un avertissement.
 - L'authentification est configurée dans `AddApplicationServices`. Les réponses JWT 401/403 y sont explicitement produites sous `application/problem+json`.
 - Utiliser `User.GetUserId()` pour extraire l'identifiant Identity depuis le claim `NameIdentifier`. Les opérations qui appartiennent à un musicien récupèrent d'abord le profil correspondant à cet utilisateur.
 - La configuration de connexion est lue via `ConnectionStrings:Default`; JWT via la section `Jwt` (`SecretKey`, `Issuer`, `Audience`, durées). `appsettings.Development.json` contient une chaîne locale et une clé JWT vide. Le projet possède aussi un `UserSecretsId`.
