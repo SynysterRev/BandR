@@ -13,7 +13,6 @@ public class LocationConfiguration : IEntityTypeConfiguration<Location>
         builder.HasKey(l => l.Id);
         
         builder.Property(l => l.Country)
-            .IsRequired()
             .HasMaxLength(75);
         
         builder.Property(l => l.City)
@@ -21,7 +20,6 @@ public class LocationConfiguration : IEntityTypeConfiguration<Location>
             .HasMaxLength(200);
         
         builder.Property(l => l.PostalCode)
-            .IsRequired()
             .HasMaxLength(10);
         
         builder.HasIndex(l => l.City).IsUnique();
