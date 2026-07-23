@@ -18,8 +18,16 @@ namespace BandR.Extensions;
 
 public static class ServiceCollectionExtensions
 {
+    public const string FrontendCorsPolicy = "Frontend";
+
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration config)
     {
+        var allowedOrigins = config.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+        services.AddCors(options => options.AddPolicy(FrontendCorsPolicy, policy => policy
+            .WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()));
+
         services.AddIdentityCore<ApplicationUser>(options =>
             {
                 options.Password.RequiredLength = 6;

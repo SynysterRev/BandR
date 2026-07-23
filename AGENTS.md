@@ -73,6 +73,7 @@ Les tests d'intégration nécessitent Docker. La CI utilise `dotnet restore`, `d
 - L'authentification est configurée dans `AddApplicationServices`. Les réponses JWT 401/403 y sont explicitement produites sous `application/problem+json`.
 - Utiliser `User.GetUserId()` pour extraire l'identifiant Identity depuis le claim `NameIdentifier`. Les opérations qui appartiennent à un musicien récupèrent d'abord le profil correspondant à cet utilisateur.
 - La configuration de connexion est lue via `ConnectionStrings:Default`; JWT via la section `Jwt` (`SecretKey`, `Issuer`, `Audience`, durées). `appsettings.Development.json` contient une chaîne locale et une clé JWT vide. Le projet possède aussi un `UserSecretsId`.
+- Les origines CORS sont lues depuis `Cors:AllowedOrigins`. Ne pas utiliser `AllowAnyOrigin` : ajouter explicitement les URL du front par environnement.
 - Ne pas committer de vraie clé JWT, de mot de passe ou de chaîne de connexion sensible. Préférer les user secrets ou les variables de configuration ASP.NET Core. Le dépôt ne contient pas de fichier `.env` ni de mécanisme dédié pour le charger.
 
 ## Ne pas faire

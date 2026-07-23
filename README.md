@@ -80,4 +80,4 @@ Les tests d'intégration nécessitent Docker : ils démarrent PostgreSQL avec Te
 
 ## Configuration locale
 
-La connexion est lue depuis `ConnectionStrings:Default` et JWT depuis la section `Jwt`. Utiliser les user secrets ou les variables d'environnement pour les secrets ; ne pas committer de clé JWT, mot de passe ou chaîne de connexion réelle.
+La connexion est lue depuis `ConnectionStrings:Default`, JWT depuis la section `Jwt` et les origines navigateur autorisées depuis `Cors:AllowedOrigins`. En développement, Next.js est autorisé sur `http://localhost:3000` et `https://localhost:3000`. En production, définir explicitement les origines du front. Utiliser les user secrets ou les variables d'environnement pour les secrets ; ne pas committer de clé JWT, mot de passe ou chaîne de connexion réelle.
