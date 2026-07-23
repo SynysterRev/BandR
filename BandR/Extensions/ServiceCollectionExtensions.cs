@@ -26,7 +26,8 @@ public static class ServiceCollectionExtensions
         services.AddCors(options => options.AddPolicy(FrontendCorsPolicy, policy => policy
             .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
-            .AllowAnyMethod()));
+            .AllowAnyMethod()
+            .AllowCredentials()));
 
         services.AddIdentityCore<ApplicationUser>(options =>
             {

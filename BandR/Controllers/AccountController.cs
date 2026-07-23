@@ -5,6 +5,8 @@ using BandR.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using BandR.Configuration;
 
 namespace BandR.Controllers;
 
@@ -13,12 +15,15 @@ namespace BandR.Controllers;
 public class AccountController(
     UserManager<ApplicationUser> userManager,
     IJwtService jwtService,
-    IAccountService accountService
+    IAccountService accountService,
+    IOptions<JwtConfiguration> jwtConfiguration
 ) : Controller
 {
+    private const string RefreshTokenCookieName = "refresh_token";
+
     [AllowAnonymous]
     [HttpPost("register")]
-    public async Task<ActionResult<AuthTokenResult>> RegisterUser(RegisterDto registerDto, CancellationToken ct)
+    public async Task<ActionResult<AccessTokenResult>> RegisterUser(RegisterDto registerDto, CancellationToken ct)
     {
         ApplicationUser user = new ApplicationUser()
         {
@@ -43,12 +48,13 @@ public class AccountController(
 
         var response = await jwtService.CreateAuthTokenAsync(user, CancellationToken.None);
 
-        return Ok(response);
+        SetRefreshTokenCookie(response.RefreshToken);
+        return Ok(ToAccessTokenResult(response));
     }
 
     [AllowAnonymous]
     [HttpPost("login")]
-    public async Task<ActionResult<AuthTokenResult>> LoginUser(LoginDto loginDto, CancellationToken ct)
+    public async Task<ActionResult<AccessTokenResult>> LoginUser(LoginDto loginDto, CancellationToken ct)
     {
         ApplicationUser? user = await userManager.FindByEmailAsync(loginDto.Email);
 
@@ -58,26 +64,36 @@ public class AccountController(
         }
 
         var response = await jwtService.CreateAuthTokenAsync(user, ct);
-        return Ok(response);
+        SetRefreshTokenCookie(response.RefreshToken);
+        return Ok(ToAccessTokenResult(response));
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpPost("refresh")]
-    public async Task<ActionResult<AuthTokenResult>> RefreshTokenAsync(RefreshTokenDto refreshToken, CancellationToken ct)
+    public async Task<ActionResult<AccessTokenResult>> RefreshTokenAsync(CancellationToken ct)
     {
-        var result = await jwtService.RefreshTokenAsync(refreshToken.RefreshToken, ct);
+        if (!Request.Cookies.TryGetValue(RefreshTokenCookieName, out var refreshToken))
+            return Unauthorized("Invalid refresh token");
+
+        var result = await jwtService.RefreshTokenAsync(refreshToken, ct);
         if (result is null)
         {
+            DeleteRefreshTokenCookie();
             return Unauthorized("Invalid refresh token");
         }
-        return Ok(result);
+
+        SetRefreshTokenCookie(result.RefreshToken);
+        return Ok(ToAccessTokenResult(result));
     }
 
-    [Authorize]
+    [AllowAnonymous]
     [HttpPost("logout")]
-    public async Task<IActionResult> Logout(RefreshTokenDto dto, CancellationToken ct)
+    public async Task<IActionResult> Logout(CancellationToken ct)
     {
-        await jwtService.RevokeTokenAsync(dto.RefreshToken, ct);
+        if (Request.Cookies.TryGetValue(RefreshTokenCookieName, out var refreshToken))
+            await jwtService.RevokeTokenAsync(refreshToken, ct);
+
+        DeleteRefreshTokenCookie();
         return NoContent();
     }
 
@@ -86,6 +102,7 @@ public class AccountController(
     public async Task<IActionResult> DeactivateMyAccount(CancellationToken ct)
     {
         await accountService.DeactivateAccountAsync(User.GetUserId(), ct);
+        DeleteRefreshTokenCookie();
         return NoContent();
     }
     
@@ -94,4 +111,28 @@ public class AccountController(
     {
         return Ok(await userManager.FindByEmailAsync(email) != null);
     }
+
+    private AccessTokenResult ToAccessTokenResult(AuthTokenResult result) =>
+        new(result.AccessToken, result.ExpiresAt);
+
+    private void SetRefreshTokenCookie(string refreshToken)
+    {
+        Response.Cookies.Append(RefreshTokenCookieName, refreshToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.None,
+            Path = "/api/account",
+            Expires = DateTimeOffset.UtcNow.AddDays(jwtConfiguration.Value.RefreshExpiryDays)
+        });
+    }
+
+    private void DeleteRefreshTokenCookie() =>
+        Response.Cookies.Delete(RefreshTokenCookieName, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.None,
+            Path = "/api/account"
+        });
 }

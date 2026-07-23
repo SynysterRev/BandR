@@ -2,6 +2,8 @@
 
 API REST permettant à des musiciens de créer un profil, publier des annonces et échanger par messagerie.
 
+Le dépôt contient aussi `bandr-web/`, le frontend Next.js de l'application.
+
 ## Stack
 
 - .NET 10 / ASP.NET Core Controllers
@@ -22,18 +24,27 @@ dotnet run --project BandR
 
 En environnement Development, Scalar est disponible sur `https://localhost:7294/scalar/v1`.
 
+### Frontend
+
+```bash
+cd bandr-web
+npm run dev
+```
+
+Le frontend est servi sur `http://localhost:3000` et consomme l'API définie dans `bandr-web/.env.local`.
+
 ## Endpoints principaux
 
-Toutes les routes sauf `register`, `login` et la vérification d'email nécessitent un Bearer token.
+Toutes les routes sauf `register`, `login`, `refresh`, `logout` et la vérification d'email nécessitent un Bearer token. `refresh` et `logout` utilisent le cookie refresh `HttpOnly`.
 
 ### Account
 
 | Méthode | Endpoint | Description |
 |---|---|---|
-| POST | `/api/account/register` | Crée un compte et retourne des tokens. |
-| POST | `/api/account/login` | Authentifie un compte actif. |
-| POST | `/api/account/refresh` | Renouvelle une paire de tokens. |
-| POST | `/api/account/logout` | Révoque un refresh token. |
+| POST | `/api/account/register` | Crée un compte, retourne un access token et pose un cookie refresh `HttpOnly`. |
+| POST | `/api/account/login` | Authentifie un compte actif, retourne un access token et pose un cookie refresh `HttpOnly`. |
+| POST | `/api/account/refresh` | Renouvelle l'access token depuis le cookie refresh. |
+| POST | `/api/account/logout` | Révoque et supprime le cookie refresh. |
 | DELETE | `/api/account/me` | Désactive le compte courant, ses annonces et ses conversations, sans supprimer l'historique. |
 | GET | `/api/account?email={email}` | Indique si une adresse email est déjà utilisée. |
 

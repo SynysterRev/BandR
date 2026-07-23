@@ -2,12 +2,12 @@
 
 ## Vue d'ensemble
 
-BandR est une API REST pour mettre en relation des musiciens : authentification, profils, annonces, conversations et messages. Il n'y a pas de client web dans ce dépôt.
+BandR est une application de mise en relation de musiciens : une API REST et un frontend Next.js pour l'authentification, les profils, les annonces, les conversations et les messages.
 
 - Runtime : .NET 10 (`net10.0`), C# avec nullable et implicit usings activés.
 - API : ASP.NET Core Controllers, OpenAPI et Scalar (documentation exposée uniquement en environnement `Development`).
 - Données : Entity Framework Core 10, PostgreSQL via Npgsql, ASP.NET Identity avec clés `Guid`.
-- Sécurité : JWT Bearer, access token et refresh token persisté sous forme de hash SHA-256.
+- Sécurité : JWT Bearer, access token et refresh token persisté sous forme de hash SHA-256. Le refresh token est envoyé dans un cookie `HttpOnly` et n'est pas exposé dans les réponses JSON.
 - Validation : FluentValidation ; tests : xUnit, FluentAssertions, Testcontainers PostgreSQL et Respawn.
 - Exécution locale : Docker Compose démarre PostgreSQL 16 ; le `Dockerfile` construit et publie l'API .NET 10.
 
@@ -28,6 +28,7 @@ Les dossiers principaux sont :
 - `BandR/Migrations/` : migrations EF Core et snapshot du modèle.
 - `BandR.Tests/Unit/Validators/` : tests unitaires de validation.
 - `BandR.Tests/IntegrationTests/` : tests des services contre un PostgreSQL Testcontainers, remis à zéro par Respawn.
+- `bandr-web/` : frontend Next.js ; `src/app/` contient les routes, `src/features/` le code par domaine, `src/lib/api/client.ts` le client HTTP et `src/types/` les contrats TypeScript.
 - `.github/workflows/dotnet.yml` : CI sur `main` (restore, build, test).
 
 ## Conventions de code observées
@@ -71,9 +72,11 @@ Les tests d'intégration nécessitent Docker. La CI utilise `dotnet restore`, `d
 
 - Les services signalent les ressources introuvables ou les accès interdits par les exceptions imbriquées `MusicianException`, `AnnouncementException` et `ConversationException`. Le middleware `ProblemDetailsExceptionMiddleware` les traduit en réponses `application/problem+json` et journalise un avertissement.
 - L'authentification est configurée dans `AddApplicationServices`. Les réponses JWT 401/403 y sont explicitement produites sous `application/problem+json`.
+- `POST /api/Account/refresh` et `POST /api/Account/logout` lisent le refresh token depuis le cookie `HttpOnly` et ne requièrent pas de Bearer token ; les autres opérations personnelles restent protégées par JWT.
 - Utiliser `User.GetUserId()` pour extraire l'identifiant Identity depuis le claim `NameIdentifier`. Les opérations qui appartiennent à un musicien récupèrent d'abord le profil correspondant à cet utilisateur.
 - La configuration de connexion est lue via `ConnectionStrings:Default`; JWT via la section `Jwt` (`SecretKey`, `Issuer`, `Audience`, durées). `appsettings.Development.json` contient une chaîne locale et une clé JWT vide. Le projet possède aussi un `UserSecretsId`.
 - Les origines CORS sont lues depuis `Cors:AllowedOrigins`. Ne pas utiliser `AllowAnyOrigin` : ajouter explicitement les URL du front par environnement.
+- Le frontend envoie les requêtes avec les credentials navigateur. Le refresh token est conservé exclusivement dans un cookie `HttpOnly` `Secure` `SameSite=None`; l'access token reste en mémoire dans `bandr-web/src/lib/api/client.ts`.
 - Ne pas committer de vraie clé JWT, de mot de passe ou de chaîne de connexion sensible. Préférer les user secrets ou les variables de configuration ASP.NET Core. Le dépôt ne contient pas de fichier `.env` ni de mécanisme dédié pour le charger.
 
 ## Ne pas faire
