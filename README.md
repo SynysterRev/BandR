@@ -33,9 +33,11 @@ npm run dev
 
 Le frontend est servi sur `http://localhost:3000` et consomme l'API définie dans `bandr-web/.env.local`.
 
+La page d'accueil affiche publiquement les annonces actives ; la connexion est demandée uniquement pour les actions privées.
+
 ## Endpoints principaux
 
-Toutes les routes sauf `register`, `login`, `refresh`, `logout` et la vérification d'email nécessitent un Bearer token. `refresh` et `logout` utilisent le cookie refresh `HttpOnly`.
+Les annonces actives et les profils sont consultables publiquement. Les routes d'écriture et les données personnelles nécessitent un Bearer token. `refresh` et `logout` utilisent le cookie refresh `HttpOnly`.
 
 ### Account
 
@@ -52,8 +54,8 @@ Toutes les routes sauf `register`, `login`, `refresh`, `logout` et la vérificat
 
 | Méthode | Endpoint | Description |
 |---|---|---|
-| GET | `/api/musicians` | Liste les profils. |
-| GET | `/api/musicians/{id}` | Retourne un profil. |
+| GET | `/api/musicians` | Liste les profils. Public. |
+| GET | `/api/musicians/{id}` | Retourne un profil. Public. |
 | GET | `/api/musicians/me` | Retourne le profil du compte courant. |
 | POST | `/api/musicians` | Crée le profil du compte courant. |
 | PATCH | `/api/musicians/me` | Modifie le profil du compte courant. |
@@ -64,8 +66,8 @@ Toutes les routes sauf `register`, `login`, `refresh`, `logout` et la vérificat
 
 | Méthode | Endpoint | Description |
 |---|---|---|
-| GET | `/api/announcements` | Liste paginée et filtrable des annonces actives. |
-| GET | `/api/announcements/{id}` | Retourne une annonce active. |
+| GET | `/api/announcements` | Liste paginée et filtrable des annonces actives. Public. |
+| GET | `/api/announcements/{id}` | Retourne une annonce active. Public. |
 | POST | `/api/announcements` | Crée une annonce. |
 | PATCH | `/api/announcements/{id}` | Modifie une annonce appartenant au profil courant. |
 | DELETE | `/api/announcements/{id}` | Supprime une annonce appartenant au profil courant. |

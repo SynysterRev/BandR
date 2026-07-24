@@ -74,6 +74,7 @@ Les tests d'intégration nécessitent Docker. La CI utilise `dotnet restore`, `d
 - L'authentification est configurée dans `AddApplicationServices`. Les réponses JWT 401/403 y sont explicitement produites sous `application/problem+json`.
 - `POST /api/Account/refresh` et `POST /api/Account/logout` lisent le refresh token depuis le cookie `HttpOnly` et ne requièrent pas de Bearer token ; les autres opérations personnelles restent protégées par JWT.
 - Utiliser `User.GetUserId()` pour extraire l'identifiant Identity depuis le claim `NameIdentifier`. Les opérations qui appartiennent à un musicien récupèrent d'abord le profil correspondant à cet utilisateur.
+- La découverte est publique : `GET /api/Announcements`, `GET /api/Announcements/{id}`, `GET /api/Musicians` et `GET /api/Musicians/{id}` sont anonymes. Toute mutation et toute donnée personnelle reste protégée.
 - La configuration de connexion est lue via `ConnectionStrings:Default`; JWT via la section `Jwt` (`SecretKey`, `Issuer`, `Audience`, durées). `appsettings.Development.json` contient une chaîne locale et une clé JWT vide. Le projet possède aussi un `UserSecretsId`.
 - Les origines CORS sont lues depuis `Cors:AllowedOrigins`. Ne pas utiliser `AllowAnyOrigin` : ajouter explicitement les URL du front par environnement.
 - Le frontend envoie les requêtes avec les credentials navigateur. Le refresh token est conservé exclusivement dans un cookie `HttpOnly` `Secure` `SameSite=None`; l'access token reste en mémoire dans `bandr-web/src/lib/api/client.ts`.

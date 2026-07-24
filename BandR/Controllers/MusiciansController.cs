@@ -16,14 +16,14 @@ public class MusiciansController(
 ) : Controller
 {
     [HttpGet]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<ActionResult<List<MusicianListDto>>> GetMusicians(CancellationToken ct)
     {
         return Ok(await musicianService.GetMusiciansAsync(ct));
     }
 
     [HttpGet("{id}")]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<ActionResult<MusicianDto>> GetMusician([FromRoute] Guid id, CancellationToken ct)
     {
         return Ok(await musicianService.GetMusicianByIdAsync(id, ct));

@@ -1,8 +1,53 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0c0a09;
-  --foreground: #f5f5f4;
+  --background: #0d1117;
+  --foreground: #edf2f7;
+  --surface: #151b23;
+  --surface-muted: #202936;
+  --border: #344154;
+  --muted: #a9b4c2;
+  --fire: #61afef;
+  --fire-soft: #1d334d;
+  --header: #090d12;
+  --header-text: #edf2f7;
+  --header-border: #344154;
+}
+
+:root[data-theme="vinyl"] {
+  --background: #171717; --foreground: #f5f0e8; --surface: #222222; --surface-muted: #302e2d; --border: #48413e; --muted: #c4b9b0; --fire: #e63946; --fire-soft: #482126; --header: #0c0c0c; --header-text: #f5f0e8; --header-border: #4f292d;
+}
+
+:root[data-theme="ultraviolet"] {
+  --background: #130d20; --foreground: #f5edff; --surface: #211633; --surface-muted: #302144; --border: #50366f; --muted: #c8b8db; --fire: #b078ff; --fire-soft: #35234d; --header: #0b0713; --header-text: #f5edff; --header-border: #50366f;
+}
+
+:root[data-theme="evergreen"] {
+  --background: #0d1e19; --foreground: #ebf7f1; --surface: #142a22; --surface-muted: #1e3a2f; --border: #355f50; --muted: #b2ccbf; --fire: #48b888; --fire-soft: #1f4938; --header: #08130f; --header-text: #ebf7f1; --header-border: #355f50;
+}
+
+:root[data-theme="sandstorm"] {
+  --background: #f7f1e7; --foreground: #201a24; --surface: #fffdf9; --surface-muted: #eee2d0; --border: #d8c8b0; --muted: #716577; --fire: #5e3b9a; --fire-soft: #e8def6; --header: #271c37; --header-text: #fff8ed; --header-border: #66517f;
+}
+
+:root[data-theme="cobalt"] {
+  --background: #eaf0f7; --foreground: #13233b; --surface: #ffffff; --surface-muted: #dce7f3; --border: #b8cae0; --muted: #59708b; --fire: #0066cc; --fire-soft: #dcecff; --header: #102a4b; --header-text: #f2f7ff; --header-border: #416a96;
+}
+
+:root[data-theme="wine"] {
+  --background: #2a0d18; --foreground: #fff0f4; --surface: #3b1222; --surface-muted: #531a31; --border: #78334e; --muted: #dcb5c2; --fire: #ff5d8f; --fire-soft: #69233e; --header: #17060d; --header-text: #fff0f4; --header-border: #78334e;
+}
+
+:root[data-theme="lagoon"] {
+  --background: #eaf7f6; --foreground: #0a2b30; --surface: #ffffff; --surface-muted: #d9eeec; --border: #b0d4d1; --muted: #4e7374; --fire: #007e82; --fire-soft: #d0efec; --header: #07353a; --header-text: #eafffc; --header-border: #3f7475;
+}
+
+:root[data-theme="gold"] {
+  --background: #15120c; --foreground: #fff7e5; --surface: #211c12; --surface-muted: #332a18; --border: #5c4a28; --muted: #d0c09e; --fire: #e6a83b; --fire-soft: #4d391a; --header: #0b0905; --header-text: #fff7e5; --header-border: #5c4a28;
+}
+
+:root[data-theme="mono"] {
+  --background: #fafafa; --foreground: #121212; --surface: #ffffff; --surface-muted: #ededed; --border: #cfcfcf; --muted: #626262; --fire: #cc2229; --fire-soft: #ffe0e1; --header: #111111; --header-text: #ffffff; --header-border: #444444;
 }
 
 @theme inline {

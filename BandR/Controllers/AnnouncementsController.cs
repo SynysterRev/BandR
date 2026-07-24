@@ -12,7 +12,7 @@ namespace BandR.Controllers;
 public class AnnouncementsController(IAnnouncementService announcementService, IMusicianService musicianService) : ControllerBase
 {
     [HttpGet]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<ActionResult<PagedResponse<AnnouncementListDto>>> GetAnnouncements(
         [FromQuery] AnnouncementQueryFilter filter, CancellationToken ct)
     {
@@ -20,7 +20,7 @@ public class AnnouncementsController(IAnnouncementService announcementService, I
     }
 
     [HttpGet("{id}")]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<ActionResult<AnnouncementDto>> GetAnnouncementById([FromRoute] Guid id, CancellationToken ct)
     {
         return Ok(await announcementService.GetAnnouncementByIdAsync(id, ct));
